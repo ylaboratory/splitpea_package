@@ -1,0 +1,164 @@
+import pandas as pd
+import mygene
+import re
+from collections import defaultdict
+import os 
+import tempfile
+import numpy as np  # Added to use np.nan
+
+def process_suppa2(psivec_path, dpsi_path, splicing_events_filter=None, species="human", save=False):
+    """
+    Process and merge two splicing-related files (PSI and dPSI/p-val) into a unified DataFrame.
+
+    Parameters:
+      psivec_path (str): File path for the PSI file.
+      dpsi_path (str): File path for the dPSI (and p-val) file.
+      splicing_events_filter (list, optional): List of splicing event types to keep (e.g. ["SE", "A3"]).
+                                               If None, no filtering is applied.
+      species (str): Species name for gene symbol mapping (default is "human").
+
+    Returns:
+      final_df (pd.DataFrame): DataFrame with metadata columns and computed columns:
+         - ensembl.id, symbol, chr, strand, exon.start, exon.end
+         - psi columns (averaged per event group; if exactly 2 groups, they are renamed to psi.gtex and psi.tcga)
+         - delta.psi and pval (from the dPSI file)
+    """
+    
+    # Load the files using the first column as the index (row names)
+    psivec_df = pd.read_csv(psivec_path, sep="\t", header=0, index_col=0)
+    dpsi_df   = pd.read_csv(dpsi_path, sep="\t", header=0, index_col=0)
+    
+    # Merge the DataFrames on their index
+    merged_df = psivec_df.merge(dpsi_df, left_index=True, right_index=True, 
+                                suffixes=('_psivec', '_dpsi'))
+    
+    # Helper function to parse a row name into metadata.
+    def parse_index(idx):
+        """
+        Parses a row name string assumed to be in the format:
+          "ENSEMBL_ID;EVENT_INFO"
+        where EVENT_INFO is colon-delimited, for example:
+          "SE:X:76886222-76886503:76886613-76888625:-"
+        Returns a Series with:
+          ensembl.id, event, chr, strand, exon.start, exon.end.
+        """
+        try:
+            parts = idx.split(";")
+            ensembl_id = parts[0]
+            event_info = parts[1]
+            fields = event_info.split(":")
+            event_type = fields[0]      
+            chr_val    = fields[1]
+            exon_range = fields[2].split("-")
+            exon_start = exon_range[0] # now i assume this changes with differnt splicing? 
+            exon_end   = exon_range[1]
+            strand     = fields[4]
+        except Exception:
+            ensembl_id, event_type, chr_val, strand, exon_start, exon_end = (np.nan,)*6
+        return pd.Series([ensembl_id, event_type, chr_val, strand, exon_start, exon_end],
+                         index=["ensembl.id", "event", "chr", "strand", "exon.start", "exon.end"])
+    
+    # Reset the index to parse the row names, then restore it
+    merged_df = merged_df.reset_index()
+    merged_df[['ensembl.id', 'event', 'chr', 'strand', 'exon.start', 'exon.end']] = merged_df['index'].apply(parse_index)
+    merged_df = merged_df.set_index('index')
+    
+    # Optionally filter by splicing event types
+    if splicing_events_filter is not None:
+        merged_df = merged_df[ merged_df['event'].isin(splicing_events_filter) ]
+    
+    # Retrieve gene symbols using mygene
+    mg = mygene.MyGeneInfo()
+    unique_ids = merged_df['ensembl.id'].dropna().unique().tolist()
+    results = mg.querymany(unique_ids, scopes='ensembl.gene', fields='symbol',
+                           species=species, as_dataframe=True)
+    # Build mapping, ensuring that missing mappings result in np.nan.
+    mapping = results['symbol'].to_dict()
+    merged_df['symbol'] = merged_df['ensembl.id'].apply(lambda x: mapping.get(x, np.nan))
+    
+    # Identify event columns (those with "events" in their name but not the dPSI/p-val columns)
+    all_cols = merged_df.columns.tolist()
+    event_cols = [col for col in all_cols 
+                  if "events" in col.lower() and 
+                  "dpsi" not in col.lower() and 
+                  "p-val" not in col.lower() and 
+                  "pval" not in col.lower()]
+    
+    # Clean column names by removing any file-specific suffixes (_psivec, _dpsi)
+    def clean_col(col):
+        return col.replace("_psivec", "").replace("_dpsi", "")
+    event_cols_clean = [clean_col(col) for col in event_cols]
+    
+    # Group event columns by their base name by stripping any trailing underscore and digits.
+    def base_group_name(col):
+        return re.sub(r'_\d+$', '', col)
+    
+    groups = defaultdict(list)
+    for orig_col, clean_name in zip(event_cols, event_cols_clean):
+        base_name = base_group_name(clean_name)
+        groups[base_name].append(orig_col)
+    
+    # Compute the mean for each event group.
+    psi_cols = {}
+    if len(groups) == 2:
+        # If there are exactly two groups, assign them to psi.gtex and psi.tcga (alphabetically by group name)
+        sorted_keys = sorted(groups.keys())
+        psi_cols["psi." + str(sorted_keys[0])] = merged_df[groups[sorted_keys[0]]].mean(axis=1)
+        psi_cols["psi." + str(sorted_keys[1])] = merged_df[groups[sorted_keys[1]]].mean(axis=1)
+    else:
+        # Otherwise, create a new psi column for each group
+        print("WARNING THERE ARE MORE THAN 2 CONDITIONS")
+        for group, cols in groups.items():
+            psi_cols[f"psi.{group}"] = merged_df[cols].mean(axis=1)
+    
+    # Add the computed psi columns to the merged dataframe
+    for new_col, series in psi_cols.items():
+        merged_df[new_col] = series
+    
+    # Identify the dPSI and p-val columns by searching (ignoring case)
+    dpsi_candidates = [col for col in merged_df.columns if "dpsi" in col.lower()]
+    pval_candidates = [col for col in merged_df.columns if ("p-val" in col.lower() or "pval" in col.lower())]
+    
+    if dpsi_candidates:
+        merged_df = merged_df.rename(columns={dpsi_candidates[0]: "delta.psi"})
+    if pval_candidates:
+        merged_df = merged_df.rename(columns={pval_candidates[0]: "pval"})
+    
+    # Define the final set of columns:
+    # metadata, psi columns, then delta.psi and pval if available.
+    meta_cols = ['ensembl.id', 'symbol', 'chr', 'strand', 'exon.start', 'exon.end']
+    psi_final_cols = [col for col in merged_df.columns if col.startswith("psi.")]
+    other_cols = []
+    if "delta.psi" in merged_df.columns:
+        other_cols.append("delta.psi")
+    if "pval" in merged_df.columns:
+        other_cols.append("pval")
+    
+    final_cols = meta_cols + psi_final_cols + other_cols
+    final_df = merged_df[final_cols]
+    
+    # Uncomment and modify the save block if you wish to save the DataFrame.
+    # if save:
+    #     final_df.to_csv("path_to_save_file.txt", sep="\t", index=False)
+
+    #print(final_df.head(20))
+    return final_df
+
+
+def parse_suppa2(psivec_path, dpsi_path, splicing_events_filter=["SE"], species="human"):
+    """
+    Parse SUPPA2 files using process_suppa2 and write the resulting DataFrame to a temporary file.
+    The temporary file is written without row names, and it is saved in the same directory as the dpsi file.
+    
+    Returns:
+      temp_file_path (str): Path to the temporary file containing the processed data.
+    """
+    final_df = process_suppa2(psivec_path, dpsi_path, splicing_events_filter, species)
+    final_df['strand'] = final_df['strand'].replace({'+': '1', '-': '-1'})
+    
+    temp_dir = os.path.dirname(os.path.abspath(dpsi_path))
+    temp_file = tempfile.NamedTemporaryFile(delete=False, mode='w', newline='', suffix=".txt", dir=temp_dir)
+    final_df.to_csv(temp_file.name, index=False, sep="\t", na_rep="nan")
+    temp_file.close()
+    return temp_file.name
+
