@@ -14,6 +14,8 @@ import tempfile
 
 from .exons import Exons
 from .parser import parse_suppa2
+from .parser import parse_rmats
+
 
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
@@ -123,7 +125,7 @@ def fileExists(f):
 
 def run(in_file,
         out_file_prefix: str,
-        skip: int = 0,
+        skip: int = 1,
         dpsi_cut: float = 0.05,
         sigscore_cut: float = 0.05,
         include_nas: bool = True,
@@ -165,6 +167,10 @@ def run(in_file,
             raise ValueError("For SUPPA2 input format, in_file must be a list or tuple of 2 file paths: [psivec_file, dpsi_file].")
         psivec_file, dpsi_file = in_file
         in_file = parse_suppa2(psivec_file, dpsi_file, species=species)
+        skip = 1
+    
+    if input_format.lower() == "rmats":
+        in_file = parse_rmats(in_file)
         skip = 1
 
     # Set default reference file paths if not provided.

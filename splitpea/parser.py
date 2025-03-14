@@ -4,7 +4,8 @@ import re
 from collections import defaultdict
 import os 
 import tempfile
-import numpy as np  # Added to use np.nan
+import numpy as np  
+import warnings 
 
 def process_suppa2(psivec_path, dpsi_path, splicing_events_filter=None, species="human", save=False):
     """
@@ -50,8 +51,9 @@ def process_suppa2(psivec_path, dpsi_path, splicing_events_filter=None, species=
             event_type = fields[0]      
             chr_val    = fields[1]
             exon_range = fields[2].split("-")
-            exon_start = exon_range[0] # now i assume this changes with differnt splicing? 
-            exon_end   = exon_range[1]
+            exon_start = exon_range[1] # now i assume this changes with differnt splicing? 
+            exon_range2 = fields[3].split("-")
+            exon_end   = exon_range2[0]
             strand     = fields[4]
         except Exception:
             ensembl_id, event_type, chr_val, strand, exon_start, exon_end = (np.nan,)*6
@@ -162,3 +164,99 @@ def parse_suppa2(psivec_path, dpsi_path, splicing_events_filter=["SE"], species=
     temp_file.close()
     return temp_file.name
 
+
+
+def calculate_psi_conds(events):
+    '''
+    Calculates psi for conditions 1 and 2 from rMATS file(s). Returns the mean of the events
+    for each condition, or nan if all events are NA.
+
+    Input:
+    - events: a list with two inner lists, the first containing condition 1 values, the second
+    containing condition 2 values
+    '''
+    events[0] = [np.nan if x == 'NA' else float(x) for x in events[0]]
+    events[1] = [np.nan if x == 'NA' else float(x) for x in events[1]]
+
+    psi_values_0 = [x for x in events[0] if str(x) != 'nan']
+    psi_values_1 = [x for x in events[1] if str(x) != 'nan']
+
+    dpsi_val_0 = -1
+    dpsi_val_1 = -1
+
+    if len(psi_values_0) == 0:
+        dpsi_val_0 = 'nan'
+    
+    if len(psi_values_1) == 0:
+        dpsi_val_1 = 'nan'
+    
+    # code sourced from SUPPA github
+    # Ignore empty slice warning when calculating the mean
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', r'Mean of empty slice')
+        if dpsi_val_0 != 'nan':
+            dpsi_val_0 = np.nanmean(psi_values_0)
+
+        if dpsi_val_1 != 'nan':
+            dpsi_val_1 = np.nanmean(psi_values_1)
+        
+    return dpsi_val_0, dpsi_val_1 # mean, or nan if all values are NA
+
+
+def parse_rmats(rmats_filepath): 
+    '''
+    Parses files from rMATS output. Generates output file in same directory as rmats_filepath.
+
+    Input:
+    - rmats_filepath: path to rMATS SE output, either JC.txt or JCEC.txt
+    '''
+    # place output file in same directory as .txt file
+    rmats_dir = rmats_filepath.split('/')
+    output_dir = ""
+    for peice in range(len(rmats_dir)-1):
+        output_dir += rmats_dir[peice] + "/"
+
+    temp_dir = os.path.dirname(os.path.abspath(rmats_filepath))
+    temp_file = tempfile.NamedTemporaryFile(delete=False, mode='w', newline='', suffix=".txt", dir=temp_dir)
+    output = temp_file
+    output.write('ensembl.id\tsymbol\tchr\tstrand\texon.start\texon.end\tpsi.condition1\tpsi.condition2\tdelta.psi\tpval\n')
+
+    with open(rmats_filepath, 'r') as rmats_file:
+        rmats_lines = rmats_file.readlines()
+
+        for i in range(1, len(rmats_lines)): 
+            rmats_contents = rmats_lines[i].strip().split('\t')
+                    
+            gene_id = rmats_contents[1].strip('"')  # Removes leading and trailing quotes
+            gene_symbol = rmats_contents[2].strip('"')  # Removes leading and trailing quotes
+
+            
+            chr = rmats_contents[3].replace("chr", "", 1) # remove chr prefix
+                    
+            strand = "1"
+            if rmats_contents[4] == '-': # - or + strand
+                strand = "-1"
+            
+            start = rmats_contents[5] # exonStart_0base
+            end = rmats_contents[6] #exonEnd
+
+            cond1_values = rmats_contents[-3].split(",") # avg IncLevel1
+            cond2_values = rmats_contents[-2].split(",") # avg IncLevel2
+            events = [cond1_values, cond2_values]
+            
+            cond1, cond2 = calculate_psi_conds(events)
+
+            if cond1 == 'nan' or cond2 == 'nan':
+                dpsi = 'nan'
+            else:
+                dpsi = rmats_contents[-1] # IncLevelDifference
+
+            pval = rmats_contents[-5] # PValue
+            
+            # filter out events where dpsi is nan
+            if dpsi != 'nan':
+                s = gene_id + "\t" + gene_symbol + "\t" + chr + "\t" + strand + "\t" + start + "\t" + end + "\t" + str(cond1) + "\t" + str(cond2) + "\t" + dpsi + "\t" + pval + "\n"
+                output.write(s)
+                    
+    output.close()
+    return temp_file.name
