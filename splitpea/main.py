@@ -1,3 +1,5 @@
+# splitpea/main.py
+
 import argparse
 import pickle
 from collections import defaultdict
@@ -166,8 +168,16 @@ def run(in_file,
         if not (isinstance(in_file, (list, tuple)) and len(in_file) == 2):
             raise ValueError("For SUPPA2 input format, in_file must be a list or tuple of 2 file paths: [psivec_file, dpsi_file].")
         psivec_file, dpsi_file = in_file
-        in_file = parse_suppa2(psivec_file, dpsi_file, species=species)
+        
+        # if psivec_file.endswith(".dpsi") and dpsi_file.endswith(".psivec"):
+        #     psivec_file, dpsi_file = dpsi_file, psivec_file  # Swap variables
+
+        in_file = parse_suppa2(psivec_file, dpsi_file, species=species, verbose = verbose)
         skip = 1
+    else:
+        if len(in_file) > 1:
+            raise ValueError("For input_formats other than SUPPA2, only a single input file is allowed.")
+        in_file = in_file[0]
     
     if input_format.lower() == "rmats":
         in_file = parse_rmats(in_file)
@@ -175,17 +185,30 @@ def run(in_file,
 
     # Set default reference file paths if not provided.
     if ppif is None or ddif is None or entrezpfamf is None or pfamcoordsf is None or tbf is None:
-        base_dir = str(Path(__file__).resolve().parent.parent / 'src' / 'reference')
-        if ppif is None:
-            ppif = os.path.join(base_dir, "human_ppi_0.5.dat")
-        if ddif is None:
-            ddif = os.path.join(base_dir, "ddi_0.5.dat")
-        if entrezpfamf is None:
-            entrezpfamf = os.path.join(base_dir, "human_entrez_pfam.txt")
-        if pfamcoordsf is None:
-            pfamcoordsf = os.path.join(base_dir, "human_pfam_genome_coords_sorted.txt.gz")
-        if tbf is None:
-            tbf = os.path.join(base_dir, "human_pfam_genome_coords_sorted.txt.gz")
+        if species.lower() == "mouse":
+            base_dir = str(Path(__file__).resolve().parent.parent / 'src' / 'mouse_ref')
+            if ppif is None:
+                ppif = os.path.join(base_dir, "mouse_ppi.dat")
+            if ddif is None:
+                ddif = os.path.join(base_dir, "ddi_0.5.dat")
+            if entrezpfamf is None:
+                entrezpfamf = os.path.join(base_dir, "mouse_entrez_pfam.txt")
+            if pfamcoordsf is None:
+                pfamcoordsf = os.path.join(base_dir, "mouse_pfam_genome_coords_sorted.txt.gz")
+            if tbf is None:
+                tbf = os.path.join(base_dir, "mouse_pfam_genome_coords_sorted.txt.gz")
+        else:
+            base_dir = str(Path(__file__).resolve().parent.parent / 'src' / 'reference')
+            if ppif is None:
+                ppif = os.path.join(base_dir, "human_ppi_0.5.dat")
+            if ddif is None:
+                ddif = os.path.join(base_dir, "ddi_0.5.dat")
+            if entrezpfamf is None:
+                entrezpfamf = os.path.join(base_dir, "human_entrez_pfam.txt")
+            if pfamcoordsf is None:
+                pfamcoordsf = os.path.join(base_dir, "human_pfam_genome_coords_sorted.txt.gz")
+            if tbf is None:
+                tbf = os.path.join(base_dir, "human_pfam_genome_coords_sorted.txt.gz")
 
     # Check that reference files exist.
     fileExists(ppif)
@@ -228,5 +251,67 @@ def run(in_file,
             ppi_ddi_out = [gi, gj, str(diff_splice_g[gi][gj]['weight']),
                            str(diff_splice_g[gi][gj]['chaos'])]
             out.write('\t'.join(ppi_ddi_out) + '\n')
+    
+    if input_format.lower() in ("rmats", "suppa2"):
+        try:
+            os.remove(in_file)
+            logger.info("Temporary file %s deleted.", in_file)
+        except Exception as e:
+            logger.error("Failed to delete temporary file %s: %s", in_file, e)
 
     logger.info("Done")
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Splicing-specific network pipeline."
+    )
+    parser.add_argument(
+        'in_file', nargs='+',
+        help="Input file path(s). For SUPPA2 format, please provide two files: psivec_path and dpsi_path."
+    )
+    parser.add_argument('out_file_prefix', 
+                        help="Prefix for output files.")
+    parser.add_argument('--input_format', type=str, choices=['regular', 'suppa2', 'rmats'], default='regular', 
+                        help="Input file format (default: regular).")
+    parser.add_argument('--skip', type=int, default=1, 
+                        help="Number of lines to skip in the input file (default: 1).")
+    parser.add_argument('--dpsi_cut', type=float, default=0.05, 
+                        help="Delta PSI cutoff (default: 0.05).")
+    parser.add_argument('--sigscore_cut', type=float, default=0.05, 
+                        help="Significance score cutoff (default: 0.05).")
+    parser.add_argument('--include_nas', action='store_true', 
+                        help="Include NAs in significance testing.")
+    parser.add_argument('--verbose', action='store_true', 
+                        help="Enable verbose logging.")
+    parser.add_argument('--ppif', type=str, default=None, 
+                        help="Protein-protein interaction file path.")
+    parser.add_argument('--ddif', type=str, default=None, 
+                        help="Domain-domain interaction file path.")
+    parser.add_argument('--entrezpfamf', type=str, default=None, 
+                        help="Gene-protein domain info file path.")
+    parser.add_argument('--pfamcoordsf', type=str, default=None, 
+                        help="Pfam genome coordinates file path.")
+    parser.add_argument('--tbf', type=str, default=None, 
+                        help="Tabix file path.")
+    parser.add_argument('--species', type=str, default='human', 
+                        help="Species (default: human).")
+
+    args = parser.parse_args()
+
+    run(args.in_file,
+        args.out_file_prefix,
+        skip=args.skip,
+        dpsi_cut=args.dpsi_cut,
+        sigscore_cut=args.sigscore_cut,
+        include_nas=args.include_nas,
+        verbose=args.verbose,
+        input_format=args.input_format,
+        ppif=args.ppif,
+        ddif=args.ddif,
+        entrezpfamf=args.entrezpfamf,
+        pfamcoordsf=args.pfamcoordsf,
+        tbf=args.tbf,
+        species=args.species)
+
+if __name__ == '__main__':
+    main()

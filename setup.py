@@ -12,6 +12,11 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/raissinging/splitpea_package",
     packages=find_packages(),
+    entry_points={
+        'console_scripts': [
+            'splitpea=splitpea.main:main',
+        ],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
