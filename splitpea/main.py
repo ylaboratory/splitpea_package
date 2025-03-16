@@ -166,7 +166,7 @@ def run(in_file,
 
     if input_format.lower() == "suppa2":
         if not (isinstance(in_file, (list, tuple)) and len(in_file) == 2):
-            raise ValueError("For SUPPA2 input format, in_file must be a list or tuple of 2 file paths: [psivec_file,  ].")
+            raise ValueError("For SUPPA2 input format, in_file must be a list or tuple of 2 file paths: [psivec_file, dpsi_file].")
         psivec_file, dpsi_file = in_file
         
         if psivec_file.endswith(".dpsi") and dpsi_file.endswith(".psivec"):
