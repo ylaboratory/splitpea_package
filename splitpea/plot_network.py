@@ -8,25 +8,25 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from adjustText import adjust_text
 
-def plot_splice_network(
+def plot_rewired_network(
     G,
     layout=None,
     node_size=30,
+    edge_width = 0.25,
     with_labels=False,
     pdf_path=None,
     plot_matplot=True,
     gephi_path=None
 ):
     """
-    Plots G with:
-      - blue edges for weight>0 & chaos==False
-      - red edges   for weight<0 & chaos==False
-      - yellow edges for chaos==True
+    Plots G using matplotlib and gives option to save a Gephi file for further 
+    modifications. 
 
     Args:
       G            : networkx.Graph
       layout       : dict of positions {node:(x,y)} or None to compute spring_layout
       node_size    : size of nodes
+      edge_width   : width of edges 
       with_labels  : whether to draw node labels 
       pdf_path     : if str, save the plot as a PDF to this path
       plot_matplot : whether to plot using Matplotlib
@@ -51,9 +51,9 @@ def plot_splice_network(
     if plot_matplot or pdf_path:
         plt.figure()
         nx.draw_networkx_nodes(G, pos, node_size=node_size)
-        nx.draw_networkx_edges(G, pos, edgelist=gain_edges,  edge_color="blue",   label="gain")
-        nx.draw_networkx_edges(G, pos, edgelist=loss_edges,  edge_color="red",    label="loss")
-        nx.draw_networkx_edges(G, pos, edgelist=chaos_edges, edge_color="yellow", label="chaos")
+        nx.draw_networkx_edges(G, layout, edgelist=gain_edges,  edge_color="blue",   width=edge_width, label="gain")
+        nx.draw_networkx_edges(G, layout, edgelist=loss_edges,  edge_color="red",    width=edge_width, label="loss")
+        nx.draw_networkx_edges(G, layout, edgelist=chaos_edges, edge_color="yellow", width=edge_width, label="chaos")
 
         if with_labels:
             texts = []
