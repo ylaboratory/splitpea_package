@@ -138,7 +138,9 @@ def run(in_file,
         entrezpfamf: str = None,
         pfamcoordsf: str = None,
         tbf: str = None,
-        species: str = 'human'):
+        species: str = 'human',
+        index: int = None,
+        stat_file_prefix: str = None):
     """
     Run the splicing-specific network pipeline.
 
@@ -173,15 +175,22 @@ def run(in_file,
             psivec_file, dpsi_file = dpsi_file, psivec_file  # Swap variables
 
         in_file = parse_suppa2(psivec_file, dpsi_file, species=species, verbose = verbose)
-        skip = 1
+        if skip is None:
+            skip = 1
+        if index is None:
+            index = 1
     else:
-        if len(in_file) > 1:
-            raise ValueError("For input_formats other than SUPPA2, only a single input file is allowed.")
-        in_file = in_file[0]
+        if type(in_file) != str:
+            if len(in_file) > 1:
+                raise ValueError("For input_formats other than SUPPA2, only a single input file is allowed.")
+            in_file = in_file[0]
+        if index is None:
+            index = 0 
     
     if input_format.lower() == "rmats":
         in_file = parse_rmats(in_file)
-        skip = 1
+        if skip is None:
+            skip = 1
 
     # Set default reference file paths if not provided.
     if ppif is None or ddif is None or entrezpfamf is None or pfamcoordsf is None or tbf is None:
@@ -229,7 +238,7 @@ def run(in_file,
 
     logger.info("Reading differential exon results....")
     dexons = Exons()
-    dexons.read_dexons(in_file, skip, dpsi_cut, sigscore_cut, include_nas)
+    dexons.read_dexons(in_file, index, skip, dpsi_cut, sigscore_cut, include_nas)
 
     logger.info("# of differentially expressed exons: %i", len(dexons))
 
@@ -260,6 +269,8 @@ def run(in_file,
             logger.error("Failed to delete temporary file %s: %s", in_file, e)
 
     logger.info("Done")
+
+    return diff_splice_g
 
 def main():
     parser = argparse.ArgumentParser(
@@ -295,6 +306,10 @@ def main():
                         help="Tabix file path.")
     parser.add_argument('--species', type=str, default='human', 
                         help="Species (default: human).")
+    parser.add_argument('--index', type=int, default=None, choices=[0, 1], 
+                        help="indexing scheme of data, 0 or 1 (default=0)")
+    parser.add_argument('--output_stats', type=str, default=None, 
+                    help="File path prefix to save Splitpea network statistics, including counts of gained, lost, and chaotic edges, as well as the top rewired genes.")
 
     args = parser.parse_args()
 
@@ -311,7 +326,9 @@ def main():
         entrezpfamf=args.entrezpfamf,
         pfamcoordsf=args.pfamcoordsf,
         tbf=args.tbf,
-        species=args.species)
+        species=args.species,
+        index = args.index, 
+        stat_file_prefix = args.output_stats)
 
 if __name__ == '__main__':
     main()
