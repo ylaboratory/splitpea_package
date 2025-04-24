@@ -35,7 +35,8 @@ def plot_rewired_network(
     G,
     layout=None,
     node_size=None,
-    edge_width = 0.25,
+    edge_width=0.25,
+    edge_alpha=0.5,            
     with_labels=False,
     pdf_path=None,
     plot_matplot=True,
@@ -50,6 +51,7 @@ def plot_rewired_network(
       layout       : dict of positions {node:(x,y)} or None to compute spring_layout
       node_size    : size of nodes
       edge_width   : width of edges 
+      edge_alpha   : opacity (0.0 transparent → 1.0 opaque)
       with_labels  : whether to draw node labels 
       pdf_path     : if str, save the plot as a PDF to this path
       plot_matplot : whether to plot using Matplotlib
@@ -82,15 +84,28 @@ def plot_rewired_network(
             node_size = [scale(degree_dict[n]) for n in G.nodes()]
 
         nx.draw_networkx_nodes(G, pos, node_size=node_size)
-        nx.draw_networkx_edges(G, pos, edgelist=gain_edges,  edge_color="blue",   width=edge_width, label="gain")
-        nx.draw_networkx_edges(G, pos, edgelist=loss_edges,  edge_color="red",    width=edge_width, label="loss")
-        nx.draw_networkx_edges(G, pos, edgelist=chaos_edges, edge_color="yellow", width=edge_width, label="chaos")
+
+        nx.draw_networkx_edges(
+            G, pos, edgelist=gain_edges,
+            edge_color="blue", width=edge_width,
+            alpha=edge_alpha, label="gain"
+        )
+        nx.draw_networkx_edges(
+            G, pos, edgelist=loss_edges,
+            edge_color="red", width=edge_width,
+            alpha=edge_alpha, label="loss"
+        )
+        nx.draw_networkx_edges(
+            G, pos, edgelist=chaos_edges,
+            edge_color="yellow", width=edge_width,
+            alpha=edge_alpha, label="chaos"
+        )
 
         if with_labels:
             texts = []
             for n, (x, y) in pos.items():
                 texts.append(plt.text(x, y, str(n), fontsize=8))
-            adjust_text(texts, arrowprops=dict(arrowstyle="->", color='grey'))
+            adjust_text(texts, arrowprops=dict(arrowstyle="->", color="grey"))
 
         plt.axis("off")
         plt.tight_layout()
@@ -106,3 +121,5 @@ def plot_rewired_network(
     if gephi_path:
         simpleG = simplify_graph(G)
         nx.write_gexf(simpleG, gephi_path)
+
+        

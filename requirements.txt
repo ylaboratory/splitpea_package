@@ -8,3 +8,4 @@ matplotlib
 plotnine
 scikit-learn
 adjustText
+importlib_resources

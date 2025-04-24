@@ -22,6 +22,9 @@ from .grab_stats import rewired_genes
 from .get_background_ppi import get_background
 from .plot_network import plot_rewired_network
 
+import importlib_resources as pkg_resources
+from .src import reference
+from .src import mouse_ref
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     datefmt="%m-%d-%Y %I:%M:%S %p",
@@ -189,13 +192,13 @@ def run(in_file,
 
         if map_path is None:
             if species == "mouse":
-                base_dir = str(Path(__file__).resolve().parent.parent / 'src' / 'mouse_ref')
-                map_path = os.path.join(base_dir, "mmu_mapping_all.txt")
+                file = pkg_resources.files(mouse_ref).joinpath("mmu_mapping_all.txt")
             else:
-                base_dir = str(Path(__file__).resolve().parent.parent / 'src' / 'reference')
-                map_path = os.path.join(base_dir, "hsa_mapping_all.txt")
-
+                file = pkg_resources.files(reference).joinpath("hsa_mapping_all.txt")
+            map_path = str(file)  
+        fileExists(map_path)
         in_file = parse_suppa2(psivec_file, dpsi_file, map_path, species=species, verbose = verbose)
+
         if skip is None:
             skip = 1
         if index is None:
@@ -216,29 +219,27 @@ def run(in_file,
     # Set default reference file paths if not provided.
     if ppif is None or ddif is None or entrezpfamf is None or pfamcoordsf is None or tbf is None:
         if species.lower() == "mouse":
-            base_dir = str(Path(__file__).resolve().parent.parent / 'src' / 'mouse_ref')
             if ppif is None:
-                ppif = os.path.join(base_dir, "mouse_ppi.dat")
+                ppif = str(pkg_resources.files(mouse_ref).joinpath("mouse_ppi.dat"))
             if ddif is None:
-                ddif = os.path.join(base_dir, "ddi_0.5.dat")
+                ddif = str(pkg_resources.files(mouse_ref).joinpath("ddi_0.5.dat"))
             if entrezpfamf is None:
-                entrezpfamf = os.path.join(base_dir, "mouse_entrez_pfam.txt")
+                entrezpfamf = str(pkg_resources.files(mouse_ref).joinpath("mouse_entrez_pfam.txt"))
             if pfamcoordsf is None:
-                pfamcoordsf = os.path.join(base_dir, "mouse_pfam_genome_coords_sorted.txt.gz")
+                pfamcoordsf = str(pkg_resources.files(mouse_ref).joinpath("mouse_pfam_genome_coords_sorted.txt.gz"))
             if tbf is None:
-                tbf = os.path.join(base_dir, "mouse_pfam_genome_coords_sorted.txt.gz")
+                tbf = str(pkg_resources.files(mouse_ref).joinpath("mouse_pfam_genome_coords_sorted.txt.gz"))
         else:
-            base_dir = str(Path(__file__).resolve().parent.parent / 'src' / 'reference')
             if ppif is None:
-                ppif = os.path.join(base_dir, "human_ppi_0.5.dat")
+                ppif = str(pkg_resources.files(reference).joinpath("human_ppi_0.5.dat"))
             if ddif is None:
-                ddif = os.path.join(base_dir, "ddi_0.5.dat")
+                ddif = str(pkg_resources.files(reference).joinpath("ddi_0.5.dat"))
             if entrezpfamf is None:
-                entrezpfamf = os.path.join(base_dir, "human_entrez_pfam.txt")
+                entrezpfamf = str(pkg_resources.files(reference).joinpath("human_entrez_pfam.txt"))
             if pfamcoordsf is None:
-                pfamcoordsf = os.path.join(base_dir, "human_pfam_genome_coords_sorted.txt.gz")
+                pfamcoordsf = str(pkg_resources.files(reference).joinpath("human_pfam_genome_coords_sorted.txt.gz"))
             if tbf is None:
-                tbf = os.path.join(base_dir, "human_pfam_genome_coords_sorted.txt.gz")
+                tbf = str(pkg_resources.files(reference).joinpath("human_pfam_genome_coords_sorted.txt.gz"))
 
     # Check that reference files exist.
     fileExists(ppif)

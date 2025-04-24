@@ -32,6 +32,9 @@ setup(
         "matplotlib",
         "plotnine",
         "scikit-learn",
-        "adjustText"
+        "adjustText",
+        "importlib_resources"
     ],
+    include_package_data=True,
+    package_data={"splitpea": ["src/*"]},
 )
