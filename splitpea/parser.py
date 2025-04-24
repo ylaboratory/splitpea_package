@@ -1,5 +1,4 @@
 import pandas as pd
-import mygene
 import re
 from collections import defaultdict
 import os 
@@ -8,7 +7,7 @@ import numpy as np
 import warnings 
 import logging 
 
-def process_suppa2(psivec_path, dpsi_path, splicing_events_filter=None, species="human", save=False, verbose=False):
+def process_suppa2(psivec_path, dpsi_path, map_path, splicing_events_filter=None, species="human", save=False, verbose=False):
     """
     Process and merge two splicing-related files (PSI and dPSI/p-val) into a unified DataFrame.
 
@@ -70,14 +69,18 @@ def process_suppa2(psivec_path, dpsi_path, splicing_events_filter=None, species=
     if splicing_events_filter is not None:
         merged_df = merged_df[ merged_df['event'].isin(splicing_events_filter) ]
     
-    # Retrieve gene symbols using mygene
-    mg = mygene.MyGeneInfo()
-    unique_ids = merged_df['ensembl.id'].dropna().unique().tolist()
-    results = mg.querymany(unique_ids, scopes='ensembl.gene', fields='symbol',
-                           species=species, as_dataframe=True, verbose = verbose)
-    # Build mapping, ensuring that missing mappings result in np.nan.
-    mapping = results['symbol'].to_dict()
-    merged_df['symbol'] = merged_df['ensembl.id'].apply(lambda x: mapping.get(x, np.nan))
+    # # Retrieve gene symbols using mygene
+    # mg = mygene.MyGeneInfo()
+    # unique_ids = merged_df['ensembl.id'].dropna().unique().tolist()
+    # results = mg.querymany(unique_ids, scopes='ensembl.gene', fields='symbol',
+    #                        species=species, as_dataframe=True, verbose = verbose)
+    # # Build mapping, ensuring that missing mappings result in np.nan.
+    # mapping = results['symbol'].to_dict()
+    # merged_df['symbol'] = merged_df['ensembl.id'].apply(lambda x: mapping.get(x, np.nan))
+
+    map_df = pd.read_csv(map_path, sep='\t', usecols=['symbol', 'ensembl'])
+    mapping = dict(zip(map_df['ensembl'], map_df['symbol']))
+    merged_df['symbol'] = merged_df['ensembl.id'].map(mapping).fillna(np.nan)
     
     # Identify event columns (those with "events" in their name but not the dPSI/p-val columns)
     all_cols = merged_df.columns.tolist()
@@ -148,7 +151,7 @@ def process_suppa2(psivec_path, dpsi_path, splicing_events_filter=None, species=
     return final_df
 
 
-def parse_suppa2(psivec_path, dpsi_path, splicing_events_filter=["SE"], species="human", verbose=False):
+def parse_suppa2(psivec_path, dpsi_path, map_path, splicing_events_filter=["SE"], species="human", verbose=False):
     """
     Parse SUPPA2 files using process_suppa2 and write the resulting DataFrame to a temporary file.
     The temporary file is written without row names, and it is saved in the same directory as the dpsi file.
@@ -156,7 +159,7 @@ def parse_suppa2(psivec_path, dpsi_path, splicing_events_filter=["SE"], species=
     Returns:
       temp_file_path (str): Path to the temporary file containing the processed data.
     """
-    final_df = process_suppa2(psivec_path, dpsi_path, splicing_events_filter, species, verbose=verbose)
+    final_df = process_suppa2(psivec_path, dpsi_path, map_path, splicing_events_filter, species, verbose=verbose)
     final_df['strand'] = final_df['strand'].replace({'+': '1', '-': '-1'})
     
     temp_dir = os.path.dirname(os.path.abspath(dpsi_path))

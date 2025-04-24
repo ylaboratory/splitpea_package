@@ -7,5 +7,4 @@ pandas
 matplotlib
 plotnine
 scikit-learn
-mygene
 adjustText

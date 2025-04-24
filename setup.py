@@ -32,6 +32,6 @@ setup(
         "matplotlib",
         "plotnine",
         "scikit-learn",
-        "mygene"
+        "adjustText"
     ],
 )

@@ -8,10 +8,33 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from adjustText import adjust_text
 
+
+def simplify_graph(G):
+    H = nx.Graph()
+    H.add_nodes_from(G.nodes()) 
+    
+    for u, v, d in G.edges(data=True):
+        weight = d.get('weight', 0)
+        chaos  = bool(d.get('chaos', False))
+        
+        if chaos:
+            etype = 'chaos'
+        elif weight > 0:
+            etype = 'gain'
+        elif weight < 0:
+            etype = 'loss'
+        else:
+            etype = 'zero'  
+        
+        H.add_edge(u, v, weight=weight, chaos=chaos, type=etype)
+    
+    return H
+
+
 def plot_rewired_network(
     G,
     layout=None,
-    node_size=30,
+    node_size=None,
     edge_width = 0.25,
     with_labels=False,
     pdf_path=None,
@@ -50,10 +73,18 @@ def plot_rewired_network(
 
     if plot_matplot or pdf_path:
         plt.figure()
+
+        if node_size is None:
+            min_size, max_size = 5, 300
+            degree_dict = dict(G.degree())
+            deg_vals = degree_dict.values()
+            scale = lambda d: min_size + (d / max(deg_vals)) * (max_size - min_size)
+            node_size = [scale(degree_dict[n]) for n in G.nodes()]
+
         nx.draw_networkx_nodes(G, pos, node_size=node_size)
-        nx.draw_networkx_edges(G, layout, edgelist=gain_edges,  edge_color="blue",   width=edge_width, label="gain")
-        nx.draw_networkx_edges(G, layout, edgelist=loss_edges,  edge_color="red",    width=edge_width, label="loss")
-        nx.draw_networkx_edges(G, layout, edgelist=chaos_edges, edge_color="yellow", width=edge_width, label="chaos")
+        nx.draw_networkx_edges(G, pos, edgelist=gain_edges,  edge_color="blue",   width=edge_width, label="gain")
+        nx.draw_networkx_edges(G, pos, edgelist=loss_edges,  edge_color="red",    width=edge_width, label="loss")
+        nx.draw_networkx_edges(G, pos, edgelist=chaos_edges, edge_color="yellow", width=edge_width, label="chaos")
 
         if with_labels:
             texts = []
@@ -73,4 +104,5 @@ def plot_rewired_network(
             plt.close()
 
     if gephi_path:
-        nx.write_gexf(G, gephi_path)
+        simpleG = simplify_graph(G)
+        nx.write_gexf(simpleG, gephi_path)

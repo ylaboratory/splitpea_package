@@ -17,7 +17,10 @@ import tempfile
 from .exons import Exons
 from .parser import parse_suppa2
 from .parser import parse_rmats
-
+from .grab_stats import rewired_edges_stat
+from .grab_stats import rewired_genes
+from .get_background_ppi import get_background
+from .plot_network import plot_rewired_network
 
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
@@ -140,7 +143,10 @@ def run(in_file,
         tbf: str = None,
         species: str = 'human',
         index: int = None,
-        stat_file_prefix: str = None):
+        edge_stats_file: str = None,
+        gene_degree_stats: bool = False,
+        plot_net: bool = False,
+        map_path: str = None):
     """
     Run the splicing-specific network pipeline.
 
@@ -155,6 +161,11 @@ def run(in_file,
       include_nas: Include NAs in significance testing (default=True).
       verbose: Enable verbose logging (default=False).
       input_format: Either 'regular' (default) or 'suppa2'.
+      species: Defaults to human.
+      index: If exon files has indx 1 or 0-based. 
+      edge_stats_file: Path to file that stores rewired edge stats. 
+      gene_degree_stats: Path to file to store rewired gene degree stats.
+      plot_net: Plots rewired network (default = False).
       
       The following file paths default to files under 'src/reference':
       ppif: Protein-protein interaction file (default: human_ppi_0.5.dat).
@@ -162,6 +173,8 @@ def run(in_file,
       entrezpfamf: Gene-protein domain info file (default: human_entrez_pfam.txt).
       pfamcoordsf: Pfam genome coordinates file (default: human_pfam_genome_coords_sorted.txt.gz).
       tbf: Tabix file (default: human_pfam_genome_coords_sorted.txt.gz).
+      map_path: Mapping between gene ids (default: hsa_mapping_all.txt). 
+      Note: there are equivalents in 'src/mouse_ref'
     """
     if verbose:
         logger.setLevel(logging.INFO)
@@ -174,7 +187,15 @@ def run(in_file,
         if psivec_file.endswith(".dpsi") and dpsi_file.endswith(".psivec"):
             psivec_file, dpsi_file = dpsi_file, psivec_file  # Swap variables
 
-        in_file = parse_suppa2(psivec_file, dpsi_file, species=species, verbose = verbose)
+        if map_path is None:
+            if species == "mouse":
+                base_dir = str(Path(__file__).resolve().parent.parent / 'src' / 'mouse_ref')
+                map_path = os.path.join(base_dir, "mmu_mapping_all.txt")
+            else:
+                base_dir = str(Path(__file__).resolve().parent.parent / 'src' / 'reference')
+                map_path = os.path.join(base_dir, "hsa_mapping_all.txt")
+
+        in_file = parse_suppa2(psivec_file, dpsi_file, map_path, species=species, verbose = verbose)
         if skip is None:
             skip = 1
         if index is None:
@@ -261,6 +282,28 @@ def run(in_file,
                            str(diff_splice_g[gi][gj]['chaos'])]
             out.write('\t'.join(ppi_ddi_out) + '\n')
     
+    if edge_stats_file is not None:
+        dat_file = out_file_prefix + '.edges.dat'
+
+        stats = rewired_edges_stat(dat_file)
+
+        file_exists = os.path.exists(edge_stats_file)
+        with open(edge_stats_file, 'a') as f:
+            if not file_exists:
+                f.write("sample\tnum_gain_edges\tnum_loss_edges\tnum_chaos_edges\n")
+                logger.info("Edge stat file created: " + str(edge_stats_file))
+            f.write(f"{out_file_prefix}\t{stats['gain']}\t{stats['loss']}\t{stats['chaos']}\n")
+            logger.info("Edge stat file written")
+
+    if gene_degree_stats == True:
+        background = get_background(ppif, ddif, entrezpfamf)
+        gene_stats_df = rewired_genes(diff_splice_g, background)
+        gene_stats_df.to_csv(out_file_prefix + "_gene_degree.csv", index=False)
+
+    if plot_net == True:
+        logger.info("Plotting network...")
+        plot_rewired_network(diff_splice_g, with_labels = True, pdf_path=out_file_prefix + "_network_plot.pdf", gephi_path=out_file_prefix + '.gexf')
+
     if input_format.lower() in ("rmats", "suppa2"):
         try:
             os.remove(in_file)
@@ -308,8 +351,14 @@ def main():
                         help="Species (default: human).")
     parser.add_argument('--index', type=int, default=None, choices=[0, 1], 
                         help="indexing scheme of data, 0 or 1 (default=0)")
-    parser.add_argument('--output_stats', type=str, default=None, 
-                    help="File path prefix to save Splitpea network statistics, including counts of gained, lost, and chaotic edges, as well as the top rewired genes.")
+    parser.add_argument('--edge_stats_file', type=str, default=None, 
+                    help="File path to a txt file to save Splitpea network statistics, including counts of gained, lost, and chaotic edges. If not file path exists it creates the file.")
+    parser.add_argument('--gene_degree_stats', action='store_true', 
+                        help="Outputs degree stats of genes in the rewired network and saves a background PPI network.")
+    parser.add_argument('--plot_net', action='store_true', 
+                        help="Plots a rough version of the rewired network using matplotlib and saves a pdf. Also saves a .gexf file for more detailed plotting using the Gephi software. ")
+    parser.add_argument('--map_path', type=str, default=None,
+                        help="Path to text file that mapps between gene ids, where it has tab delineated columns: symbol, entrez, ensembl, uniprot. The pacakage has default files for mouse and human.")
 
     args = parser.parse_args()
 
@@ -328,7 +377,10 @@ def main():
         tbf=args.tbf,
         species=args.species,
         index = args.index, 
-        stat_file_prefix = args.output_stats)
+        edge_stats_file = args.edge_stats_file,
+        gene_degree_stats = args.gene_degree_stats,
+        plot_net = args.plot_net,
+        map_path = args.map_path)
 
 if __name__ == '__main__':
     main()
