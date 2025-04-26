@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="splitpea",
-    version="0.1.4",
+    version="0.1.6",
     author="Jeffrey Zhong",
     author_email="jz94@rice.edu",
     description="Splitpea does stuff",

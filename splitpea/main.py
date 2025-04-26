@@ -4,8 +4,10 @@ import argparse
 import pickle
 from collections import defaultdict
 import networkx as nx
-import os
-from numpy import average
+import os, sys
+import numpy as np
+import pandas as pd
+from statistics import mean
 from functools import partial
 from os.path import basename
 from subprocess import Popen, PIPE
@@ -22,6 +24,9 @@ from .grab_stats import rewired_edges_stat
 from .grab_stats import rewired_genes
 from .get_background_ppi import get_background
 from .plot_network import plot_rewired_network
+from .core import tb_query
+from .core import calculate_edges
+from.core import deduce_final_edge_weights
 
 import importlib_resources as pkg_resources
 from .src import reference
@@ -33,98 +38,161 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
 logger = logging.getLogger('diff_exon')
 
 
-def tb_query(tb_file, chrom, start, end):
+def calculate_delta_psi(sum_bg_file, bg_file, target_file, outdir):
     """
-    Call tabix and yield an array of strings for each line returned.
-    (Adapted from https://github.com/slowkow/pytabix)
+    Calculate delta PSI values and p-values for GTEx–TCGA exon comparisons.
+    
+    Parameters:
+    - sum_bg_file: path to the GTEx summarized background file (one psi column + grouping cols)
+    - bg_file: path to the raw GTEx spliced exon file (multiple psi sample columns)
+    - target_file: path to the TCGA spliced exon file (multiple psi sample columns)
+    - outdir: directory where outputs will be saved
+    
+    Outputs:
+    - {outdir}/{sample}-psi.txt: TSV with columns
+      [ensembl_gene_id, symbol, chr, strand, exon_start, exon_end,
+       psi_gtex, psi_tcga, delta_psi, pval]
     """
-    if shutil.which("tabix") is None:
-        raise RuntimeError("The 'tabix' binary is required but was not found. Please install it via 'sudo apt-get install tabix' or 'brew install htslib'.")
-    query = '{}:{}-{}'.format(chrom, start, end)
-    process = Popen(['tabix', '-f', tb_file, query], stdout=PIPE, text=True)
-    for line in process.stdout:
-        yield line.strip().split()
+    # Helper: empirical CDF generator
+    def get_ecdf(vals):
+        v = np.asarray(vals, dtype=float)
+        valid = ~np.isnan(v)
+        n = valid.sum()
+        min_valid = max(10, int(n * 0.1))
+        if n < min_valid:
+            return lambda x: np.nan
+        diffs = np.abs(v[valid][:, None] - v[valid][None, :])
+        i, j = np.tril_indices(n, k=-1)
+        subtracts = diffs[i, j]
+        if np.all(subtracts == 0):
+            return lambda x: np.nan
+        sorted_subs = np.sort(subtracts)
+        m = len(sorted_subs)
+        def ecdf(x):
+            # fraction of background diffs ≤ x
+            return np.searchsorted(sorted_subs, x, side='right') / m
+        return ecdf
+
+    # Ensure output directory exists
+    os.makedirs(outdir, exist_ok=True)
+    
+    # Define grouping columns
+    group_cols = ['ensembl_gene_id', 'symbol', 'chr', 'strand', 'exon_start', 'exon_end']
+
+    # 1) Load and preprocess GTEx summary (one PSI column)
+    sum_bg = pd.read_csv(sum_bg_file, sep='\t')
+    sum_bg = sum_bg.groupby(group_cols, as_index=False).mean()
+    psi_cols = [c for c in sum_bg.columns if c not in group_cols]
+    if len(psi_cols) != 1:
+        raise ValueError("Expected exactly one PSI column in summarized background file.")
+    sum_bg = sum_bg.rename(columns={psi_cols[0]: 'psi_gtex'})
+
+    # 2) Load and preprocess raw GTEx for ECDF
+    bg_all = pd.read_csv(bg_file, sep='\t')
+    bg_all = bg_all.drop(columns=['upstreamEE','downstreamES'], errors='ignore')
+    bg_all = bg_all.groupby(['GeneID','geneSymbol','chr','strand','exonStart_0base','exonEnd'], as_index=False).mean()
+    bg_all['chr'] = bg_all['chr'].astype(str).str.replace('chr','')
+    bg_all['strand'] = bg_all['strand'].astype(str).map(lambda s: -1 if s=='-' else 1)
+    bg_all = bg_all.rename(columns={
+        'GeneID':'ensembl_gene_id',
+        'geneSymbol':'symbol',
+        'exonStart_0base':'exon_start',
+        'exonEnd':'exon_end'
+    })
+    sample_cols_bg = [c for c in bg_all.columns if c not in group_cols]
+    bg_all = bg_all[group_cols + sample_cols_bg]
+    
+    # Precompute ECDF functions per exon
+    ecdf_funcs = [get_ecdf(row[sample_cols_bg].values) for _, row in bg_all.iterrows()]
+    ecdf_df = bg_all[group_cols].copy()
+    ecdf_df['ecdf_func'] = ecdf_funcs
+
+    # 3) Load and preprocess TCGA data
+    tcga_all = pd.read_csv(target_file, sep='\t')
+    tcga_all = tcga_all.drop(columns=['upstreamEE','downstreamES'], errors='ignore')
+    tcga_all = tcga_all.groupby(['AC','GeneName','chr','strand','exonStart','exonEnd'], as_index=False).mean()
+    tcga_all['chr'] = tcga_all['chr'].astype(str).str.replace('chr','')
+    tcga_all['strand'] = tcga_all['strand'].astype(str).map(lambda s: -1 if s=='-' else 1)
+    tcga_all = tcga_all.rename(columns={
+        'AC':'ensembl_gene_id',
+        'GeneName':'symbol',
+        'exonStart':'exon_start',
+        'exonEnd':'exon_end'
+    })
+    sample_cols_tcga = [c for c in tcga_all.columns if c not in group_cols]
+    tcga_all = tcga_all[group_cols + sample_cols_tcga]
+
+    # 4) For each TCGA sample: compute ΔPSI and p-values
+    for sam in sample_cols_tcga:
+        print(f"Processing sample {sam}...")
+        tmp = tcga_all[group_cols + [sam]].copy()
+        tmp = tmp.rename(columns={sam: 'psi_tcga'})
+        
+        # merge with GTEx summary
+        joint = pd.merge(sum_bg, tmp, on=group_cols, how='inner')
+        joint = joint.dropna(subset=['psi_gtex','psi_tcga'])
+        joint['delta_psi'] = joint['psi_tcga'] - joint['psi_gtex']
+        
+        # merge with ECDF functions
+        joint = pd.merge(joint, ecdf_df, on=group_cols, how='left')
+        joint['abs_delta'] = np.abs(joint['delta_psi'])
+        
+        # evaluate CDF and compute p-value
+        joint['cdf_val'] = joint.apply(
+            lambda row: row['ecdf_func'](row['abs_delta']) if callable(row['ecdf_func']) else np.nan,
+            axis=1
+        )
+        joint['pval'] = 1 - joint['cdf_val']
+        
+        # keep only numeric columns; drop the function pointers
+        out_df = joint.drop(columns=['ecdf_func','abs_delta','cdf_val'])
+        
+        # write to TSV
+        out_path = os.path.join(outdir, f"{sam}-psi.txt")
+        out_df.to_csv(out_path, sep='\t', index=False)
 
 
-def calculate_edges(g, dex, tb, all_ddis, all_ppis, entrez_pfams):
-    """
-    For each differentially expressed exon, build a network based on reference PPI and DDI.
-    """
-    for ex in dex.dexon2scores:
-        ex_dpsi = dex.dexon2scores[ex][0]
+def combine_spliced_exon(in_dir):
 
-        for r in tb_query(tb, ex[0], ex[1], ex[2]):
-            if r[8] != ex[3]:  # Ensure same strand
-                continue
+  def get_nums_list(s):
+      '''
+      given a list of string numbers
+      with possible NaNs return
+      all non-NaN values
+      '''
+      l = []
 
-            gi = r[0]
-            pfi = r[2]
-            pfi_start = r[3]
-            pfi_end = r[4]
+      for elm in s:
+          if elm != 'NaN' and elm.strip() != "":
+              l.append(float(elm))
 
-            if gi not in all_ppis or gi not in entrez_pfams:
-                continue
-
-            if pfi not in all_ddis or pfi not in entrez_pfams:
-                continue
-
-            for gj in all_ppis[gi]:
-                if gj not in entrez_pfams:
-                    continue
-
-                ddi_overlap = set(entrez_pfams[gj]).intersection(set(all_ddis[pfi]))
-                if len(ddi_overlap) > 0:
-                    if gi not in g:
-                        g.add_node(gi)
-
-                    if pfi not in g.nodes[gi]:
-                        g.nodes[gi][pfi] = defaultdict(dict)
-
-                    if (pfi_start, pfi_end) not in g.nodes[gi][pfi]:
-                        g.nodes[gi][pfi][(pfi_start, pfi_end)]['dexons'] = set()
-                        g.nodes[gi][pfi][(pfi_start, pfi_end)]['min_dpsi'] = 1
-
-                    g.nodes[gi][pfi][(pfi_start, pfi_end)]['dexons'].add((ex, ex_dpsi))
-                    if ex_dpsi < g.nodes[gi][pfi][(pfi_start, pfi_end)]['min_dpsi']:
-                        g.nodes[gi][pfi][(pfi_start, pfi_end)]['min_dpsi'] = ex_dpsi
-
-                    if gj not in g[gi]:
-                        g.add_edge(gi, gj,
-                                   ppi_weight=all_ppis[gi][gj]['weight'],
-                                   ppi_ddis=defaultdict(partial(defaultdict, set)))
-
-                    g.edges[gi, gj]['ppi_ddis'][gi][pfi] |= ddi_overlap
+      return l
 
 
-def deduce_final_edge_weights(g):
-    """
-    Collapse multiple domain edges into final edge weights.
-    """
-    num_chaos = 0
-    for gi, gj in g.edges():
-        chaos = False
-        pos_dpsi = []
-        neg_dpsi = []
+  for fn in os.listdir(in_dir):
+      if fn.endswith('combined_mean.txt'): # skip generated output files 
+          continue
+      print("processing file: " + fn)
+      out_mean = open(in_dir + "/" + fn.replace('.txt', '') + '_combined_mean.txt', 'w')
+      out_mean.write('ensembl_gene_id\tsymbol\tchr\tstrand\texon_start\texon_end\tpsi\n')
 
-        for g_ddi in g[gi][gj]['ppi_ddis']:
-            for pf_g in g[gi][gj]['ppi_ddis'][g_ddi]:
-                for pf_loc in g.nodes[g_ddi][pf_g]:
-                    pf_dpsi = g.nodes[g_ddi][pf_g][pf_loc]['min_dpsi']
-                    if pf_dpsi < 0:
-                        neg_dpsi.append(pf_dpsi)
-                    else:
-                        pos_dpsi.append(pf_dpsi)
-
-        if pos_dpsi and neg_dpsi:
-            chaos = True
-            num_chaos += 1
-
-        g[gi][gj]['weight'] = average(pos_dpsi + neg_dpsi)
-        g[gi][gj]['chaos'] = chaos
-        g[gi][gj]['num_dpsi_pfs'] = len(pos_dpsi) + len(neg_dpsi)
-
-    g.graph['num_chaos'] = num_chaos
-
+      header = True
+      with open(in_dir + "/" + fn, 'r') as f:
+          for line in f:
+              if header:
+                  header = False
+                  continue
+              words = line.strip().split('\t')
+              strand = "1"
+              if words[3] == '-':
+                  strand = "-1"
+              s = words[0] + "\t" + words[1] + "\t" + words[2].replace("chr", "") + "\t" + strand + "\t" + words[4] + '\t' + words[5] + "\t"
+              nums = get_nums_list(words[8:])
+              a = "NaN"
+              if len(nums) > 1:
+                  a = mean(nums)
+              out_mean.write(s + str(a) + "\n")
+      out_mean.close()
 
 def fileExists(f):
     """
@@ -364,7 +432,7 @@ def main():
     parser.add_argument('--gene_degree_stats', action='store_true', 
                         help="Outputs degree stats of genes in the rewired network and saves a background PPI network.")
     parser.add_argument('--plot_net', action='store_true', 
-                        help="Plots a rough version of the rewired network using matplotlib and saves a pdf. Also saves a .gexf file for more detailed plotting using the Gephi software.")
+                        help="Plots a rough version of the rewired network using matplotlib and saves a pdf. Also saves a .gexf file for more detailed plotting using the Gephi software. For large networks, this functionality may struggle. Consider using Gephi or another software to plot.")
     parser.add_argument('--write_gexf', action='store_true', 
                         help="Saves a .gexf file for more detailed plotting using the Gephi software.")
     parser.add_argument('--map_path', type=str, default=None,
