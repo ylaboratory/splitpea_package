@@ -409,7 +409,7 @@ def main():
                         help="Delta PSI cutoff (default: 0.05).")
     parser.add_argument('--sigscore_cut', type=float, default=0.05, 
                         help="Significance score cutoff (default: 0.05).")
-    parser.add_argument('--include_nas', action='store_true', 
+    parser.add_argument('--include_nas', type=bool, default=True,  
                         help="Include NAs in significance testing.")
     parser.add_argument('--verbose', action='store_true', 
                         help="Enable verbose logging.")
