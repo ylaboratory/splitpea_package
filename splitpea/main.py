@@ -13,6 +13,7 @@ from pathlib import Path
 import logging
 import csv
 import tempfile
+import shutil
 
 from .exons import Exons
 from .parser import parse_suppa2
@@ -37,6 +38,8 @@ def tb_query(tb_file, chrom, start, end):
     Call tabix and yield an array of strings for each line returned.
     (Adapted from https://github.com/slowkow/pytabix)
     """
+    if shutil.which("tabix") is None:
+        raise RuntimeError("The 'tabix' binary is required but was not found. Please install it via 'sudo apt-get install tabix' or 'brew install htslib'.")
     query = '{}:{}-{}'.format(chrom, start, end)
     process = Popen(['tabix', '-f', tb_file, query], stdout=PIPE, text=True)
     for line in process.stdout:
@@ -149,6 +152,7 @@ def run(in_file,
         edge_stats_file: str = None,
         gene_degree_stats: bool = False,
         plot_net: bool = False,
+        write_gexf: bool = False,
         map_path: str = None):
     """
     Run the splicing-specific network pipeline.
@@ -304,7 +308,10 @@ def run(in_file,
     if plot_net == True:
         logger.info("Plotting network...")
         plot_rewired_network(diff_splice_g, with_labels = True, pdf_path=out_file_prefix + "_network_plot.pdf", gephi_path=out_file_prefix + '.gexf')
-
+    if write_gexf == True:
+        logger.info("Outputing gexf for network...")
+        plot_rewired_network(diff_splice_g, with_labels = True, plot_matplot = False, gephi_path=out_file_prefix + '.gexf')
+    
     if input_format.lower() in ("rmats", "suppa2"):
         try:
             os.remove(in_file)
@@ -357,7 +364,9 @@ def main():
     parser.add_argument('--gene_degree_stats', action='store_true', 
                         help="Outputs degree stats of genes in the rewired network and saves a background PPI network.")
     parser.add_argument('--plot_net', action='store_true', 
-                        help="Plots a rough version of the rewired network using matplotlib and saves a pdf. Also saves a .gexf file for more detailed plotting using the Gephi software. ")
+                        help="Plots a rough version of the rewired network using matplotlib and saves a pdf. Also saves a .gexf file for more detailed plotting using the Gephi software.")
+    parser.add_argument('--write_gexf', action='store_true', 
+                        help="Saves a .gexf file for more detailed plotting using the Gephi software.")
     parser.add_argument('--map_path', type=str, default=None,
                         help="Path to text file that mapps between gene ids, where it has tab delineated columns: symbol, entrez, ensembl, uniprot. The pacakage has default files for mouse and human.")
 
@@ -381,6 +390,7 @@ def main():
         edge_stats_file = args.edge_stats_file,
         gene_degree_stats = args.gene_degree_stats,
         plot_net = args.plot_net,
+        write_gexf = args.write_gexf,
         map_path = args.map_path)
 
 if __name__ == '__main__':

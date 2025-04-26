@@ -4,10 +4,10 @@ from setuptools import setup, find_packages
 
 setup(
     name="splitpea",
-    version="0.1.0",
-    author="Your Name",
-    author_email="your.email@example.com",
-    description="A short description of what splitpea does",
+    version="0.1.4",
+    author="Jeffrey Zhong",
+    author_email="jz94@rice.edu",
+    description="Splitpea does stuff",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/raissinging/splitpea_package",
@@ -27,8 +27,6 @@ setup(
         "networkx==3.1",
         "intervaltree==3.1.0",
         "ipykernel",
-        "karateclub",
-        "pandas",
         "matplotlib",
         "plotnine",
         "scikit-learn",
