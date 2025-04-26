@@ -15,6 +15,7 @@ import splitpea
 
 net = splitpea.run(in_file="psi.txt", out_file_prefix="sample1")
 ```
+or in cmd line 
 
 ```bash
 splitpea psi.txt sample1
