@@ -4,31 +4,21 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from adjustText import adjust_text
 
-import matplotlib.pyplot as plt
-import networkx as nx
-from adjustText import adjust_text
+def return_gephi(G, outfile_path):
 
+    with open(outfile_path, 'w') as f_out:
+        header = ["source", "target", "weight", "direction"]
+        f_out.write('\t'.join(header) + '\n')
+        
+        for gi, gj in nx.edges(G):
+            weight = G[gi][gj]['weight']
+            direction = "positive" if weight >= 0 else "negative"
+            
+            if G[gi][gj].get('chaos', False):
+                direction = "chaos-" + direction
 
-def simplify_graph(G):
-    H = nx.Graph()
-    H.add_nodes_from(G.nodes()) 
-    
-    for u, v, d in G.edges(data=True):
-        weight = d.get('weight', 0)
-        chaos  = bool(d.get('chaos', False))
-        
-        if chaos:
-            etype = 'chaos'
-        elif weight > 0:
-            etype = 'gain'
-        elif weight < 0:
-            etype = 'loss'
-        else:
-            etype = 'zero'  
-        
-        H.add_edge(u, v, weight=weight, chaos=chaos, type=etype)
-    
-    return H
+            ppi_ddi_out = [gi, gj, str(abs(weight)), direction]
+            f_out.write('\t'.join(ppi_ddi_out) + '\n')
 
 
 def plot_rewired_network(
@@ -119,7 +109,6 @@ def plot_rewired_network(
             plt.close()
 
     if gephi_path:
-        simpleG = simplify_graph(G)
-        nx.write_gexf(simpleG, gephi_path)
+        simpleG = return_gephi(G,gephi_path )
 
         
