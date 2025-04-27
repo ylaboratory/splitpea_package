@@ -3,7 +3,7 @@
 This is the Python package implementation of **Splitpea**: *SPLicing InTeractions PErsonAlized*.
 
 Original repository: [https://github.com/ylaboratory/splitpea](https://github.com/ylaboratory/splitpea)\
-Repository for the package's code: [https://github.com/raissinging/splitpea_packagea](https://github.com/raissinging/splitpea_package)\
+Repository for this package's code: [https://github.com/raissinging/splitpea_package](https://github.com/raissinging/splitpea_package)\
 This pip package is an extended version with easier installation and additional functions.
 
 Splitpea quantifies rewiring in protein-protein interaction (PPI) networks driven by alternative splicing events. It integrates differential exon usage (PSI values) with domain-domain interactions (DDIs) and PPIs to generate condition-specific networks.
