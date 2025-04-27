@@ -146,7 +146,7 @@ To view all command-line options:
 ```bash
 splitpea -h
 ```
-which lists: `in_file`, `out_file_prefix`, `--input_format`, `--skip`, `--dpsi_cut`, `--sigscore_cut`, `--include_nas`, `--verbose`, `--ppif`, `--ddif`, `--entrezpfamf`, `--pfamcoordsf`, `--tbf`, `--species`, `--index`, `--edge_stats_file`, `--gene_degree_stats`, `--plot_net`, `--gephi_tsv`, `--map_path`
+which lists: `in_file`, `out_file_prefix`, `--input_format`, `--skip`, `--dpsi_cut`, `--sigscore_cut`, `--include_nas`, `--verbose`, `--ppif`, `--ddif`, `--entrezpfamf`, `--pfamcoordsf`, `--tbf`, `--species`, `--index`, `--edge_stats_file`, `--gene_degree_stats`, `--plot_net`, `--gephi_tsv`, `--map_path` and explanations for each paramter.  
 
 
 ---
