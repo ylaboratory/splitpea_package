@@ -393,7 +393,7 @@ def run(in_file,
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Splicing-specific network pipeline."
+        description="splitpea: SPLicing InTeractions PErsonAlized"
     )
     parser.add_argument(
         'in_file', nargs='+',
