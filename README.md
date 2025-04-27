@@ -72,7 +72,7 @@ Examples:
 - Currently, only **skipped exon (SE)** events are supported across all input types.
 - rMATS support works for **JCEC outputs** (junction + exon counts).
 - For SUPPA2 input, provide both `.psivec` and `.dpsi` files (order does not matter as long as one ends with `.psivec` and the other ends with `.dpsi`).
-- The default Splitpea format requires a `.txt` file (tab-seperated) with the following header:
+- The default Splitpea format (i.e. regular) requires a `.txt` file (tab-seperated) with the following header:
   ```
   ensembl.id  symbol  chr  strand  exon.start  exon.end  psi.gtex  psi.tcga  delta.psi  pval
   ```
