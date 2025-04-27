@@ -71,9 +71,9 @@ Examples:
 **Notes:**
 
 - Currently, only **skipped exon (SE)** events are supported across all input types.
-- rMATS support works for **JCEC outputs** (junction + exon counts).
+- rMATS support works for **JCEC and JC outputs**.
 - For SUPPA2 input, provide both `.psivec` and `.dpsi` files (order does not matter as long as one ends with `.psivec` and the other ends with `.dpsi`).
-- The default Splitpea format (i.e. regular) requires a `.txt` file (tab-seperated) with the following header:
+- The default splitpea format (i.e. regular) requires a `.txt` file (tab-seperated) with the following header:
   ```
   ensembl.id  symbol  chr  strand  exon.start  exon.end  psi.gtex  psi.tcga  delta.psi  pval
   ```
@@ -161,7 +161,7 @@ which lists: `in_file`, `out_file_prefix`, `--input_format`, `--skip`, `--dpsi_c
 - **Reference Files:**
 
   - Defaults are bundled for human and mouse.
-  - Custom references can be supplied manually: `ppif` (PPI file), `ddif` (DDI file), and mappings ( including `entrezpfamf`, `pfamcoordsf`, and `tbf`) (note: `tbf` is often the same file as `pfamcoordsf`). `map_path` is a path to a .txt file containing gene ID mappings between `symbol`, `entrez`, `ensembl`, and `uniprot` identifiers (where those are the header/first line of the tab-seperated text file). There are default mappings built into the package, but you can update that with your own mapping.
+  - Custom references can be supplied manually: `ppif` (PPI file), `ddif` (DDI file), and mappings ( including `entrezpfamf`, `pfamcoordsf`, and `tbf`) (note: `tbf` is often the same file as `pfamcoordsf`). `map_path` is a path to a .txt file containing gene ID mappings between `symbol`, `entrez`, `ensembl`, and `uniprot` identifiers (where those are the header/first line of the tab-seperated text file). There are default mappings built into the package, but you can define your own/update the mapping if you so wish.
 
 - **Input Handling:**
 
