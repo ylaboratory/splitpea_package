@@ -130,27 +130,12 @@ net = splitpea.run(["diffSplice.psivec", "diffSplice.dpsi"], "sample1", input_fo
 ### Python 
 
 ```python
-def run(
-    in_file,
-    out_file_prefix,
-    skip=1,
-    dpsi_cut=0.05,
-    sigscore_cut=0.05,
-    include_nas=True,
-    verbose=False,
-    input_format="regular",
-    ppif=None,
-    ddif=None,
-    entrezpfamf=None,
-    pfamcoordsf=None,
-    tbf=None,
-    species="human",
-    index=None,
-    edge_stats_file=None,
-    gene_degree_stats=False,
-    plot_net=False,
-    gephi_tsv=False,
-    map_path=None
+splitpea.run(
+    in_file, out_file_prefix: str, skip: int = 1, dpsi_cut: float = 0.05, sigscore_cut: float = 0.05,
+    include_nas: bool = True, verbose: bool = False, input_format: str = "regular",
+    ppif: str = None, ddif: str = None, entrezpfamf: str = None, pfamcoordsf: str = None, tbf: str = None,
+    species: str = "human", index: int = None, edge_stats_file: str = None,
+    gene_degree_stats: bool = False, plot_net: bool = False, gephi_tsv: bool = False, map_path: str = None
 )
 ```
 
