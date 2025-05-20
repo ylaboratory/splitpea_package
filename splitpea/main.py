@@ -221,6 +221,7 @@ def run(in_file,
         gene_degree_stats: bool = False,
         plot_net: bool = False,
         gephi_tsv: bool = False,
+        cytoscape_gml: bool = False,
         map_path: str = None):
     """
     Run the splicing-specific network pipeline.
@@ -379,6 +380,9 @@ def run(in_file,
     if gephi_tsv == True:
         logger.info("Outputing gexf for network...")
         plot_rewired_network(diff_splice_g, with_labels = True, plot_matplot = False, gephi_path=out_file_prefix + '_gephi.csv')
+    if cytoscape_gml == True:
+        logger.info("Outputing gml for network...")
+        plot_rewired_network(diff_splice_g, with_labels = True, plot_matplot = False, cytoscape_path=out_file_prefix + '_cyto.gml')
     
     if input_format.lower() in ("rmats", "suppa2"):
         try:
@@ -432,9 +436,11 @@ def main():
     parser.add_argument('--gene_degree_stats', action='store_true', 
                         help="Outputs degree stats of genes in the rewired network and saves a background PPI network.")
     parser.add_argument('--plot_net', action='store_true', 
-                        help="Plots a rough version of the rewired network using matplotlib and saves a pdf. For large networks, this may crash. Consider using Gephi or another software to plot.")
+                        help="Plots a rough version of the rewired network using matplotlib and saves a pdf. For large networks, this may crash. Consider using Gephi, Cytoscape, or another software to plot.")
     parser.add_argument('--gephi_tsv', action='store_true', 
                         help="Saves a .tsv file for more detailed plotting that is compatible with the Gephi software.")
+    parser.add_argument('--cytoscape_gml', action='store_true', 
+                    help="Saves a .gml file for more detailed plotting that is compatible with the Cytoscape software.")
     parser.add_argument('--map_path', type=str, default=None,
                         help="Path to text file that mapps between gene ids, where it has tab delineated columns: symbol, entrez, ensembl, uniprot. The pacakage has default files for mouse and human.")
 
@@ -459,6 +465,7 @@ def main():
         gene_degree_stats = args.gene_degree_stats,
         plot_net = args.plot_net,
         gephi_tsv = args.gephi_tsv,
+        cytoscape_gml = args.cytoscape_gml,
         map_path = args.map_path)
 
 if __name__ == '__main__':

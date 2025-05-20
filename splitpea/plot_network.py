@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 from adjustText import adjust_text
+import numpy as np
 
 def return_gephi(G, outfile_path):
 
@@ -20,6 +21,32 @@ def return_gephi(G, outfile_path):
             ppi_ddi_out = [gi, gj, str(abs(weight)), direction]
             f_out.write('\t'.join(ppi_ddi_out) + '\n')
 
+def return_cytoscape(G, outfile_path):
+
+    for n, data in G.nodes(data=True):
+        data.clear()
+
+    for u, v, data in G.edges(data=True):
+
+        if 'ppi_ddis' in data:
+            data.pop('ppi_ddis')
+
+        for key in list(data.keys()):
+            if '_' in key:
+                new_key = key.replace('_', '')
+                data[new_key] = data.pop(key)
+
+        for key in list(data.keys()):
+            value = data[key]
+            if isinstance(value, (np.integer, np.int32, np.int64)):
+                data[key] = int(value)
+            elif isinstance(value, (np.float32, np.float64)):
+                data[key] = float(value)
+            elif isinstance(value, np.bool_):
+                data[key] = bool(value)
+
+    nx.write_gml(G, outfile_path)
+
 
 def plot_rewired_network(
     G,
@@ -30,7 +57,8 @@ def plot_rewired_network(
     with_labels=False,
     pdf_path=None,
     plot_matplot=True,
-    gephi_path=None
+    gephi_path=None,
+    cytoscape_path = None
 ):
     """
     Plots G using matplotlib and gives option to save a Gephi file for further 
@@ -48,8 +76,8 @@ def plot_rewired_network(
       gephi_path   : if str, export G as GEXF to this path (for Gephi)
     """
 
-    if not plot_matplot and pdf_path is None and gephi_path is None:
-        raise ValueError("Must either plot with Matplotlib (plot_matplot=True), save as PDF (pdf_path), or export to Gephi (gephi_path)")
+    if not plot_matplot and pdf_path is None and gephi_path is None and cytoscape_path is None:
+        raise ValueError("Must either plot with Matplotlib (plot_matplot=True), save as PDF (pdf_path), or export to Gephi (gephi_path) or Cytoscape (cytoscape_path)")
 
     gain_edges  = [(u, v) for u, v, d in G.edges(data=True)
                    if d.get("weight", 0) > 0 and not d.get("chaos", False)]
@@ -110,5 +138,8 @@ def plot_rewired_network(
 
     if gephi_path:
         simpleG = return_gephi(G,gephi_path )
+    
+    if cytoscape_path:
+        return_cytoscape(G, cytoscape_path)
 
         

@@ -3,7 +3,7 @@
 This is the Python package implementation of **Splitpea**: *SPLicing InTeractions PErsonAlized*.
 
 Original repository: [https://github.com/ylaboratory/splitpea](https://github.com/ylaboratory/splitpea)\
-Repository for this package's code: [https://github.com/raissinging/splitpea_package](https://github.com/raissinging/splitpea_package)\
+Repository for this package's code: [https://github.com/ylaboratory/splitpea_package](https://github.com/ylaboratory/splitpea_package)\
 This pip package is an extended version with easier installation and additional functions.
 
 Splitpea quantifies rewiring in protein-protein interaction (PPI) networks driven by alternative splicing events. It integrates differential exon usage (PSI values) with domain-domain interactions (DDIs) and PPIs to generate condition-specific networks.
@@ -115,6 +115,7 @@ net = splitpea.run(["diffSplice.psivec", "diffSplice.dpsi"], "sample1", input_fo
   - Edge rewiring summaries
   - Auto-generated network plots
   - Gephi-compatible TSV files
+  - Cytoscape-compatible gml files
 
 ---
 
@@ -136,7 +137,8 @@ splitpea.run(
     include_nas: bool = True, verbose: bool = False, input_format: str = "regular",
     ppif: str = None, ddif: str = None, entrezpfamf: str = None, pfamcoordsf: str = None, tbf: str = None,
     species: str = "human", index: int = None, edge_stats_file: str = None,
-    gene_degree_stats: bool = False, plot_net: bool = False, gephi_tsv: bool = False, map_path: str = None
+    gene_degree_stats: bool = False, plot_net: bool = False, gephi_tsv: bool = False, 
+    cytoscape_gml: bool = False, map_path: str = None
 )
 ```
 
@@ -146,7 +148,7 @@ To view all command-line options:
 ```bash
 splitpea -h
 ```
-which lists: `in_file`, `out_file_prefix`, `--input_format`, `--skip`, `--dpsi_cut`, `--sigscore_cut`, `--include_nas`, `--verbose`, `--ppif`, `--ddif`, `--entrezpfamf`, `--pfamcoordsf`, `--tbf`, `--species`, `--index`, `--edge_stats_file`, `--gene_degree_stats`, `--plot_net`, `--gephi_tsv`, `--map_path` and explanations for each paramter.  
+which lists: `in_file`, `out_file_prefix`, `--input_format`, `--skip`, `--dpsi_cut`, `--sigscore_cut`, `--include_nas`, `--verbose`, `--ppif`, `--ddif`, `--entrezpfamf`, `--pfamcoordsf`, `--tbf`, `--species`, `--index`, `--edge_stats_file`, `--gene_degree_stats`, `--plot_net`, `--gephi_tsv`, `--cytoscape_gml`, `--map_path` and explanations for each paramter.  
 
 
 ---
@@ -189,6 +191,8 @@ which lists: `in_file`, `out_file_prefix`, `--input_format`, `--skip`, `--dpsi_c
   - `plot_net=True`:  Quick network plot with matplotlib (may crash for very large networks; it is recommended to use dedicated network visualization software, such as Gephi, for better handling and visualization of  the rewired networks).
 
   - `gephi_tsv=True`:  Saves a Gephi-compatible TSV file.
+
+  - `cytoscape_gml=True`: Saves a Cytoscape-compatible gml file
 
 ---
 
