@@ -399,12 +399,14 @@ def plot(pickle_path: str,
          with_labels: bool = False,
          pdf_path: str = None,
          gephi_path: str = None,
-         cytoscape_path: str = None):
+         cytoscape_path: str = None,
+         max_nodes: int = 2000,
+         max_edges: int = 10000):
     """
-    Load a pickled Graph (as created by `rewrire(...)`) and call plot_rewired_network().
+    Load a pickled Graph (as created by `rewire(...)`) and call plot_rewired_network().
 
     Parameters:
-    - pickle_path: path to the '.edges.pickle' file (output of `rewrire(...)`).
+    - pickle_path: path to the '.edges.pickle' file (output of `rewire(...)`).
     - with_labels: whether to draw node labels in the plot.
     - pdf_path: if provided, write a PDF of the plotted network to this path.
     - gephi_path: if provided, write a Gephi-compatible CSV to this path.
@@ -417,16 +419,33 @@ def plot(pickle_path: str,
     with open(pickle_path, 'rb') as f:
         G = pickle.load(f)
 
-    plot_rewired_network(
+    plot_matplot = True
+    if pdf_path is None:
+        plot_matplot = False
+
+    result = plot_rewired_network(
         G,
         with_labels=with_labels,
         pdf_path=pdf_path,
+        plot_matplot=plot_matplot,
         gephi_path=gephi_path,
-        cytoscape_path=cytoscape_path
+        cytoscape_path=cytoscape_path,
+        max_nodes = max_nodes,
+        max_edges = max_edges
     )
 
-    print(f"Plotting complete. Outputs written to: "
-          f"{pdf_path or '–'}, {gephi_path or '–'}, {cytoscape_path or '–'}")
+    outputs = []
+    if pdf_path:
+        outputs.append(f"PDF → {pdf_path}")
+    if gephi_path:
+        outputs.append(f"Gephi CSV → {gephi_path}")
+    if cytoscape_path:
+        outputs.append(f"Cytoscape GML → {cytoscape_path}")
+
+    if outputs:
+        print("Generated outputs:\n  " + "\n  ".join(outputs))
+    else:
+        print("No output files were requested.")
 
 def main():
 
@@ -436,63 +455,63 @@ def main():
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    rewrire_p = subparsers.add_parser(
-        "rewrire", help="calculate network from exon‐level input"
+    rewire_p = subparsers.add_parser(
+        "rewire", help="calculate and output rewired network"
     )
 
-    rewrire_p.add_argument(
+    rewire_p.add_argument(
         'in_file', nargs='+',
         help="Input file path(s). For SUPPA2 format, please provide two files: psivec_path and dpsi_path."
     )
-    rewrire_p.add_argument('out_file_prefix', 
+    rewire_p.add_argument('out_file_prefix', 
                         help="Prefix for output files.")
-    rewrire_p.add_argument('--input_format', type=str, choices=['regular', 'suppa2', 'rmats'], default='regular', 
+    rewire_p.add_argument('--input_format', type=str, choices=['regular', 'suppa2', 'rmats'], default='regular', 
                         help="Input file format (default: regular).")
-    rewrire_p.add_argument('--skip', type=int, default=1, 
+    rewire_p.add_argument('--skip', type=int, default=1, 
                         help="Number of lines to skip in the input file (default: 1).")
-    rewrire_p.add_argument('--dpsi_cut', type=float, default=0.05, 
+    rewire_p.add_argument('--dpsi_cut', type=float, default=0.05, 
                         help="Delta PSI cutoff (default: 0.05).")
-    rewrire_p.add_argument('--sigscore_cut', type=float, default=0.05, 
+    rewire_p.add_argument('--sigscore_cut', type=float, default=0.05, 
                         help="Significance score cutoff (default: 0.05).")
-    rewrire_p.add_argument('--include_nas', type=bool, default=True,  
+    rewire_p.add_argument('--include_nas', type=bool, default=True,  
                         help="Include NAs in significance testing.")
-    rewrire_p.add_argument('--verbose', action='store_true', 
+    rewire_p.add_argument('--verbose', action='store_true', 
                         help="Enable verbose logging.")
-    rewrire_p.add_argument('--ppif', type=str, default=None, 
+    rewire_p.add_argument('--ppif', type=str, default=None, 
                         help="Protein-protein interaction file path.")
-    rewrire_p.add_argument('--ddif', type=str, default=None, 
+    rewire_p.add_argument('--ddif', type=str, default=None, 
                         help="Domain-domain interaction file path.")
-    rewrire_p.add_argument('--entrezpfamf', type=str, default=None, 
+    rewire_p.add_argument('--entrezpfamf', type=str, default=None, 
                         help="Gene-protein domain info file path.")
-    rewrire_p.add_argument('--pfamcoordsf', type=str, default=None, 
+    rewire_p.add_argument('--pfamcoordsf', type=str, default=None, 
                         help="Pfam genome coordinates file path.")
-    rewrire_p.add_argument('--tbf', type=str, default=None, 
+    rewire_p.add_argument('--tbf', type=str, default=None, 
                         help="Tabix file path.")
-    rewrire_p.add_argument('--species', type=str, default='human', 
+    rewire_p.add_argument('--species', type=str, default='human', 
                         help="Species (default: human).")
-    rewrire_p.add_argument('--index', type=int, default=None, choices=[0, 1], 
+    rewire_p.add_argument('--index', type=int, default=None, choices=[0, 1], 
                         help="indexing scheme of data, 0 or 1 (default=0)")
-    rewrire_p.add_argument('--edge_stats_file', type=str, default=None, 
+    rewire_p.add_argument('--edge_stats_file', type=str, default=None, 
                     help="File path to a txt file to save Splitpea network statistics, including counts of gained, lost, and chaotic edges. If not file path exists it creates the file.")
-    rewrire_p.add_argument('--gene_degree_stats', action='store_true', 
+    rewire_p.add_argument('--gene_degree_stats', action='store_true', 
                         help="Outputs degree stats of genes in the rewired network and saves a background PPI network.")
-    rewrire_p.add_argument('--plot_net', action='store_true', 
+    rewire_p.add_argument('--plot_net', action='store_true', 
                         help="Plots a rough version of the rewired network using matplotlib and saves a pdf. For large networks, this may crash. Consider using Gephi, Cytoscape, or another software to plot.")
-    rewrire_p.add_argument('--gephi_tsv', action='store_true', 
+    rewire_p.add_argument('--gephi_tsv', action='store_true', 
                         help="Saves a .tsv file for more detailed plotting that is compatible with the Gephi software.")
-    rewrire_p.add_argument('--cytoscape_gml', action='store_true', 
+    rewire_p.add_argument('--cytoscape_gml', action='store_true', 
                     help="Saves a .gml file for more detailed plotting that is compatible with the Cytoscape software.")
-    rewrire_p.add_argument('--map_path', type=str, default=None,
+    rewire_p.add_argument('--map_path', type=str, default=None,
                         help="Path to text file that mapps between gene ids, where it has tab delineated columns: symbol, entrez, ensembl, uniprot. The pacakage has default files for mouse and human.")
 
 
 
     plot_p = subparsers.add_parser(
-        "plot", help="load a .edges.pickle and produce plots"
+        "plot", help="load a saved rewired network (.edges.pickle) and produce plots"
     )
     plot_p.add_argument(
         'pickle_path',
-        help="Path to the '.edges.pickle' file (output of `rewrire`)."
+        help="Path to the '.edges.pickle' file (output of `rewire`)."
     )
     plot_p.add_argument(
         '--with-labels', action='store_true',
@@ -511,9 +530,18 @@ def main():
         help="If provided, write a Cytoscape .gml to this location."
     )
 
+    plot_p.add_argument(
+    '--max_nodes', type=int, default=2000,
+        help="Maximum number of nodes before disabling Matplotlib plotting (default: 2000)."
+    )
+    plot_p.add_argument(
+        '--max_edges', type=int, default=10000,
+        help="Maximum number of edges before disabling Matplotlib plotting (default: 10000)."
+    )
+
     args = parser.parse_args()
 
-    if args.command == "rewrire":
+    if args.command == "rewire":
         rewire(args.in_file,
             args.out_file_prefix,
             skip=args.skip,
@@ -541,7 +569,9 @@ def main():
             with_labels=args.with_labels,
             pdf_path=args.pdf_path,
             gephi_path=args.gephi_path,
-            cytoscape_path=args.cytoscape_path
+            cytoscape_path=args.cytoscape_path,
+            max_nodes=args.max_nodes,
+            max_edges=args.max_edges
         )
 
 if __name__ == '__main__':

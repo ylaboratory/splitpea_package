@@ -1,6 +1,6 @@
 # splitpea/__init__.py
 
-from .main import calculate_delta_psi, combine_spliced_exon, run
+from .main import calculate_delta_psi, combine_spliced_exon, rewire
 from .get_background_ppi import get_background
 from .get_consensus_network import get_consensus_network
 
