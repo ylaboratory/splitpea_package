@@ -202,7 +202,7 @@ def fileExists(f):
         print("ERROR: the file " + f + " was not found.")
 
 
-def run(in_file,
+def rewire(in_file,
         out_file_prefix: str,
         skip: int = 1,
         dpsi_cut: float = 0.05,
@@ -395,78 +395,154 @@ def run(in_file,
 
     return diff_splice_g
 
+def plot(pickle_path: str,
+         with_labels: bool = False,
+         pdf_path: str = None,
+         gephi_path: str = None,
+         cytoscape_path: str = None):
+    """
+    Load a pickled Graph (as created by `rewrire(...)`) and call plot_rewired_network().
+
+    Parameters:
+    - pickle_path: path to the '.edges.pickle' file (output of `rewrire(...)`).
+    - with_labels: whether to draw node labels in the plot.
+    - pdf_path: if provided, write a PDF of the plotted network to this path.
+    - gephi_path: if provided, write a Gephi-compatible CSV to this path.
+    - cytoscape_path: if provided, write a Cytoscape GML to this path.
+    """
+
+    if not os.path.isfile(pickle_path):
+        sys.exit(f"ERROR: pickle file '{pickle_path}' not found.")
+
+    with open(pickle_path, 'rb') as f:
+        G = pickle.load(f)
+
+    plot_rewired_network(
+        G,
+        with_labels=with_labels,
+        pdf_path=pdf_path,
+        gephi_path=gephi_path,
+        cytoscape_path=cytoscape_path
+    )
+
+    print(f"Plotting complete. Outputs written to: "
+          f"{pdf_path or '–'}, {gephi_path or '–'}, {cytoscape_path or '–'}")
+
 def main():
+
     parser = argparse.ArgumentParser(
         description="splitpea: SPLicing InTeractions PErsonAlized"
     )
-    parser.add_argument(
+
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    rewrire_p = subparsers.add_parser(
+        "rewrire", help="calculate network from exon‐level input"
+    )
+
+    rewrire_p.add_argument(
         'in_file', nargs='+',
         help="Input file path(s). For SUPPA2 format, please provide two files: psivec_path and dpsi_path."
     )
-    parser.add_argument('out_file_prefix', 
+    rewrire_p.add_argument('out_file_prefix', 
                         help="Prefix for output files.")
-    parser.add_argument('--input_format', type=str, choices=['regular', 'suppa2', 'rmats'], default='regular', 
+    rewrire_p.add_argument('--input_format', type=str, choices=['regular', 'suppa2', 'rmats'], default='regular', 
                         help="Input file format (default: regular).")
-    parser.add_argument('--skip', type=int, default=1, 
+    rewrire_p.add_argument('--skip', type=int, default=1, 
                         help="Number of lines to skip in the input file (default: 1).")
-    parser.add_argument('--dpsi_cut', type=float, default=0.05, 
+    rewrire_p.add_argument('--dpsi_cut', type=float, default=0.05, 
                         help="Delta PSI cutoff (default: 0.05).")
-    parser.add_argument('--sigscore_cut', type=float, default=0.05, 
+    rewrire_p.add_argument('--sigscore_cut', type=float, default=0.05, 
                         help="Significance score cutoff (default: 0.05).")
-    parser.add_argument('--include_nas', type=bool, default=True,  
+    rewrire_p.add_argument('--include_nas', type=bool, default=True,  
                         help="Include NAs in significance testing.")
-    parser.add_argument('--verbose', action='store_true', 
+    rewrire_p.add_argument('--verbose', action='store_true', 
                         help="Enable verbose logging.")
-    parser.add_argument('--ppif', type=str, default=None, 
+    rewrire_p.add_argument('--ppif', type=str, default=None, 
                         help="Protein-protein interaction file path.")
-    parser.add_argument('--ddif', type=str, default=None, 
+    rewrire_p.add_argument('--ddif', type=str, default=None, 
                         help="Domain-domain interaction file path.")
-    parser.add_argument('--entrezpfamf', type=str, default=None, 
+    rewrire_p.add_argument('--entrezpfamf', type=str, default=None, 
                         help="Gene-protein domain info file path.")
-    parser.add_argument('--pfamcoordsf', type=str, default=None, 
+    rewrire_p.add_argument('--pfamcoordsf', type=str, default=None, 
                         help="Pfam genome coordinates file path.")
-    parser.add_argument('--tbf', type=str, default=None, 
+    rewrire_p.add_argument('--tbf', type=str, default=None, 
                         help="Tabix file path.")
-    parser.add_argument('--species', type=str, default='human', 
+    rewrire_p.add_argument('--species', type=str, default='human', 
                         help="Species (default: human).")
-    parser.add_argument('--index', type=int, default=None, choices=[0, 1], 
+    rewrire_p.add_argument('--index', type=int, default=None, choices=[0, 1], 
                         help="indexing scheme of data, 0 or 1 (default=0)")
-    parser.add_argument('--edge_stats_file', type=str, default=None, 
+    rewrire_p.add_argument('--edge_stats_file', type=str, default=None, 
                     help="File path to a txt file to save Splitpea network statistics, including counts of gained, lost, and chaotic edges. If not file path exists it creates the file.")
-    parser.add_argument('--gene_degree_stats', action='store_true', 
+    rewrire_p.add_argument('--gene_degree_stats', action='store_true', 
                         help="Outputs degree stats of genes in the rewired network and saves a background PPI network.")
-    parser.add_argument('--plot_net', action='store_true', 
+    rewrire_p.add_argument('--plot_net', action='store_true', 
                         help="Plots a rough version of the rewired network using matplotlib and saves a pdf. For large networks, this may crash. Consider using Gephi, Cytoscape, or another software to plot.")
-    parser.add_argument('--gephi_tsv', action='store_true', 
+    rewrire_p.add_argument('--gephi_tsv', action='store_true', 
                         help="Saves a .tsv file for more detailed plotting that is compatible with the Gephi software.")
-    parser.add_argument('--cytoscape_gml', action='store_true', 
+    rewrire_p.add_argument('--cytoscape_gml', action='store_true', 
                     help="Saves a .gml file for more detailed plotting that is compatible with the Cytoscape software.")
-    parser.add_argument('--map_path', type=str, default=None,
+    rewrire_p.add_argument('--map_path', type=str, default=None,
                         help="Path to text file that mapps between gene ids, where it has tab delineated columns: symbol, entrez, ensembl, uniprot. The pacakage has default files for mouse and human.")
+
+
+
+    plot_p = subparsers.add_parser(
+        "plot", help="load a .edges.pickle and produce plots"
+    )
+    plot_p.add_argument(
+        'pickle_path',
+        help="Path to the '.edges.pickle' file (output of `rewrire`)."
+    )
+    plot_p.add_argument(
+        '--with-labels', action='store_true',
+        help="Draw node labels in the plot (default: False)."
+    )
+    plot_p.add_argument(
+        '--pdf-path', type=str, default=None,
+        help="If provided, write a PDF plot to this location."
+    )
+    plot_p.add_argument(
+        '--gephi-path', type=str, default=None,
+        help="If provided, write a Gephi-compatible CSV to this location."
+    )
+    plot_p.add_argument(
+        '--cytoscape-path', type=str, default=None,
+        help="If provided, write a Cytoscape .gml to this location."
+    )
 
     args = parser.parse_args()
 
-    run(args.in_file,
-        args.out_file_prefix,
-        skip=args.skip,
-        dpsi_cut=args.dpsi_cut,
-        sigscore_cut=args.sigscore_cut,
-        include_nas=args.include_nas,
-        verbose=args.verbose,
-        input_format=args.input_format,
-        ppif=args.ppif,
-        ddif=args.ddif,
-        entrezpfamf=args.entrezpfamf,
-        pfamcoordsf=args.pfamcoordsf,
-        tbf=args.tbf,
-        species=args.species,
-        index = args.index, 
-        edge_stats_file = args.edge_stats_file,
-        gene_degree_stats = args.gene_degree_stats,
-        plot_net = args.plot_net,
-        gephi_tsv = args.gephi_tsv,
-        cytoscape_gml = args.cytoscape_gml,
-        map_path = args.map_path)
+    if args.command == "rewrire":
+        rewire(args.in_file,
+            args.out_file_prefix,
+            skip=args.skip,
+            dpsi_cut=args.dpsi_cut,
+            sigscore_cut=args.sigscore_cut,
+            include_nas=args.include_nas,
+            verbose=args.verbose,
+            input_format=args.input_format,
+            ppif=args.ppif,
+            ddif=args.ddif,
+            entrezpfamf=args.entrezpfamf,
+            pfamcoordsf=args.pfamcoordsf,
+            tbf=args.tbf,
+            species=args.species,
+            index = args.index, 
+            edge_stats_file = args.edge_stats_file,
+            gene_degree_stats = args.gene_degree_stats,
+            plot_net = args.plot_net,
+            gephi_tsv = args.gephi_tsv,
+            cytoscape_gml = args.cytoscape_gml,
+            map_path = args.map_path)
+    elif args.command == "plot":
+        plot(
+            pickle_path=args.pickle_path,
+            with_labels=args.with_labels,
+            pdf_path=args.pdf_path,
+            gephi_path=args.gephi_path,
+            cytoscape_path=args.cytoscape_path
+        )
 
 if __name__ == '__main__':
     main()

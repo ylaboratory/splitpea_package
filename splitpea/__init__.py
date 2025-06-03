@@ -9,5 +9,6 @@ __all__ = [
     "combine_spliced_exon",
     "get_background",
     "get_consensus_network", 
-    "run",
+    "rewire",
+    "plot"
 ]

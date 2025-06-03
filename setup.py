@@ -4,13 +4,13 @@ from setuptools import setup, find_packages
 
 setup(
     name="splitpea",
-    version="0.1.21",
+    version="0.1.22",
     author="Jeffrey Zhong",
     author_email="jz94@rice.edu",
     description="Splitpea: method for calculating network rewiring changes due to splicing",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/raissinging/splitpea_package",
+    url="https://github.com/ylaboratory/splitpea_package",
     packages=find_packages(),
     entry_points={
         'console_scripts': [
