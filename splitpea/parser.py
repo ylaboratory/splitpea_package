@@ -51,7 +51,7 @@ def process_suppa2(psivec_path, dpsi_path, map_path, splicing_events_filter=None
             event_type = fields[0]      
             chr_val    = fields[1]
             exon_range = fields[2].split("-")
-            exon_start = exon_range[1] # now i assume this changes with differnt splicing? 
+            exon_start = exon_range[1] 
             exon_range2 = fields[3].split("-")
             exon_end   = exon_range2[0]
             strand     = fields[4]
@@ -82,13 +82,24 @@ def process_suppa2(psivec_path, dpsi_path, map_path, splicing_events_filter=None
     mapping = dict(zip(map_df['ensembl'], map_df['symbol']))
     merged_df['symbol'] = merged_df['ensembl.id'].map(mapping).fillna(np.nan)
     
-    # Identify event columns (those with "events" in their name but not the dPSI/p-val columns)
     all_cols = merged_df.columns.tolist()
-    event_cols = [col for col in all_cols 
-                  if "events" in col.lower() and 
-                  "dpsi" not in col.lower() and 
-                  "p-val" not in col.lower() and 
-                  "pval" not in col.lower()]
+    meta_cols_ = {
+        'ensembl.id',
+        'event',
+        'chr',
+        'strand',
+        'exon.start',
+        'exon.end',
+        'symbol'
+    }
+
+    event_cols = [
+        col for col in all_cols
+        if "dpsi" not in col.lower()
+        and "p-val" not in col.lower()
+        and "pval" not in col.lower()
+        and col not in meta_cols_
+    ]
     
     # Clean column names by removing any file-specific suffixes (_psivec, _dpsi)
     def clean_col(col):
@@ -107,12 +118,10 @@ def process_suppa2(psivec_path, dpsi_path, map_path, splicing_events_filter=None
     # Compute the mean for each event group.
     psi_cols = {}
     if len(groups) == 2:
-        # If there are exactly two groups, assign them to psi.gtex and psi.tcga (alphabetically by group name)
         sorted_keys = sorted(groups.keys())
         psi_cols["psi." + str(sorted_keys[0])] = merged_df[groups[sorted_keys[0]]].mean(axis=1)
         psi_cols["psi." + str(sorted_keys[1])] = merged_df[groups[sorted_keys[1]]].mean(axis=1)
     else:
-        # Otherwise, create a new psi column for each group
         print("WARNING THERE ARE MORE THAN 2 CONDITIONS")
         for group, cols in groups.items():
             psi_cols[f"psi.{group}"] = merged_df[cols].mean(axis=1)
@@ -142,10 +151,9 @@ def process_suppa2(psivec_path, dpsi_path, map_path, splicing_events_filter=None
     
     final_cols = meta_cols + psi_final_cols + other_cols
     final_df = merged_df[final_cols]
-    
-    # Uncomment and modify the save block if you wish to save the DataFrame.
-    # if save:
-    #     final_df.to_csv("path_to_save_file.txt", sep="\t", index=False)
+    final_df.loc[:, 'strand'] = final_df['strand'].map({'+': '1', '-': '-1'})
+    final_df.loc[:, 'chr'] = final_df['chr'].str.replace(r'^chr', '', regex=True)
+
 
     #print(final_df.head(20))
     return final_df
