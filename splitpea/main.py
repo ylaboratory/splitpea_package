@@ -447,6 +447,68 @@ def plot(pickle_path: str,
     else:
         print("No output files were requested.")
 
+def stats(dat_file: str,
+          rewire_net: str,
+          out_file_prefix: str = None,
+          ppif: str = None,
+          ddif: str = None,
+          entrezpfamf: str = None,
+          species: str = 'human'):
+    """
+    Output gene-level statistics for a rewired splicing-induced PPI network.
+
+    Parameters:
+      dat_file: Path to the input file containing the rewired network edges (e.g., one edge per line).
+      rewire_net: Path to the file listing genes with differential splicing events.
+      out_file: Path (or prefix) for the output gene‐stats summary.
+      ppif: Protein–protein interaction reference file (default: human_ppi_0.5.dat).
+      ddif: Domain–domain interaction reference file (default: ddi_0.5.dat).
+      entrezpfamf: File mapping Entrez Gene IDs to Pfam domains (default: human_entrez_pfam.txt).
+      species: Species identifier for reference selection (default: 'human').
+    """
+    
+    if ppif is None or ddif is None or entrezpfamf:
+        if species.lower() == "mouse":
+            if ppif is None:
+                ppif = str(pkg_resources.files(mouse_ref).joinpath("mouse_ppi.dat"))
+            if ddif is None:
+                ddif = str(pkg_resources.files(mouse_ref).joinpath("ddi_0.5.dat"))
+            if entrezpfamf is None:
+                entrezpfamf = str(pkg_resources.files(mouse_ref).joinpath("mouse_entrez_pfam.txt"))
+            # if pfamcoordsf is None:
+            #     pfamcoordsf = str(pkg_resources.files(mouse_ref).joinpath("mouse_pfam_genome_coords_sorted.txt.gz"))
+            # if tbf is None:
+            #     tbf = str(pkg_resources.files(mouse_ref).joinpath("mouse_pfam_genome_coords_sorted.txt.gz"))
+        else:
+            if ppif is None:
+                ppif = str(pkg_resources.files(reference).joinpath("human_ppi_0.5.dat"))
+            if ddif is None:
+                ddif = str(pkg_resources.files(reference).joinpath("ddi_0.5.dat"))
+            if entrezpfamf is None:
+                entrezpfamf = str(pkg_resources.files(reference).joinpath("human_entrez_pfam.txt"))
+            # if pfamcoordsf is None:
+            #     pfamcoordsf = str(pkg_resources.files(reference).joinpath("human_pfam_genome_coords_sorted.txt.gz"))
+            # if tbf is None:
+            #     tbf = str(pkg_resources.files(reference).joinpath("human_pfam_genome_coords_sorted.txt.gz"))
+
+    stats = rewired_edges_stat(dat_file)
+    gain, loss, chaos = (int(stats[k]) for k in ("gain","loss","chaos"))
+    print(f"""\
+    Basic edge stats:
+    Gain : {gain}
+    Loss : {loss}
+    Chaos: {chaos}
+    """)
+
+    background = get_background(ppif, ddif, entrezpfamf)
+    with open(rewire_net, 'rb') as f:
+        diff_splice_g = pickle.load(f)
+    gene_stats_df = rewired_genes(diff_splice_g, background)
+    if out_file_prefix != None:
+        gene_stats_df.to_csv(out_file_prefix + "_gene_degree.csv", index=False)
+    return gene_stats_df
+
+
 def main():
 
     parser = argparse.ArgumentParser(
@@ -539,6 +601,51 @@ def main():
         help="Maximum number of edges before disabling Matplotlib plotting (default: 10000)."
     )
 
+    stats_p = subparsers.add_parser(
+    "stats",
+    help="compute and write gene level statistics for a rewired splicing PPI network"
+    )
+    stats_p.add_argument(
+        "dat_file",
+        type=str,
+        help="Path to the input file of rewired network edges dat file"
+    )
+    stats_p.add_argument(
+        "rewire_net",
+        type=str,
+        help="Path to pickle file of rewired network" 
+    )
+    stats_p.add_argument(
+        "out_file_prefix",
+        type=str,
+        help="Prefix for path for the output gene rewire statistics summary"
+    )
+    stats_p.add_argument(
+        "--ppif",
+        type=str,
+        default=None,
+        help="Protein protein interaction reference file (default: from src/reference for the given species)"
+    )
+    stats_p.add_argument(
+        "--ddif",
+        type=str,
+        default=None,
+        help="Domain domain interaction reference file (default: from src/reference for the given species)"
+    )
+    stats_p.add_argument(
+        "--entrezpfamf",
+        type=str,
+        default=None,
+        help="Entrez to Pfam mapping file (default: from src/reference for the given species)"
+    )
+    stats_p.add_argument(
+        "--species",
+        type=str,
+        default="human",
+        help="Species identifier to pick the correct reference files (default: 'human')"
+    )
+
+
     args = parser.parse_args()
 
     if args.command == "rewire":
@@ -572,6 +679,16 @@ def main():
             cytoscape_path=args.cytoscape_path,
             max_nodes=args.max_nodes,
             max_edges=args.max_edges
+        )
+    elif args.command == "stats":
+       stats(
+            dat_file=args.dat_file,
+            rewire_net=args.rewire_net,
+            out_file=args.out_file_prefix,
+            ppif=args.ppif,
+            ddif=args.ddif,
+            entrezpfamf=args.entrezpfamf,
+            species=args.species
         )
 
 if __name__ == '__main__':
