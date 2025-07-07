@@ -202,7 +202,7 @@ def fileExists(f):
         print("ERROR: the file " + f + " was not found.")
 
 
-def rewire(in_file,
+def run(in_file,
         out_file_prefix: str,
         skip: int = 1,
         dpsi_cut: float = 0.05,
@@ -371,7 +371,7 @@ def rewire(in_file,
 
     if gene_degree_stats == True:
         background = get_background(ppif, ddif, entrezpfamf)
-        gene_stats_df = rewired_genes(diff_splice_g, background)
+        gene_stats_df = rewired_genes(diff_splice_g, background, map_path)
         gene_stats_df.to_csv(out_file_prefix + "_gene_degree.csv", index=False)
 
     if plot_net == True:
@@ -401,7 +401,10 @@ def plot(pickle_path: str,
          gephi_path: str = None,
          cytoscape_path: str = None,
          max_nodes: int = 2000,
-         max_edges: int = 10000):
+         max_edges: int = 10000,
+         symbol: bool = True,
+         map_path: str = None,
+         species: str = 'human'):
     """
     Load a pickled Graph (as created by `rewire(...)`) and call plot_rewired_network().
 
@@ -418,6 +421,28 @@ def plot(pickle_path: str,
 
     with open(pickle_path, 'rb') as f:
         G = pickle.load(f)
+    
+    if symbol:
+        if map_path is None or not os.path.isfile(map_path):
+            if species == "mouse":
+                file = pkg_resources.files(mouse_ref).joinpath("mmu_mapping_all.txt")
+            else:
+                file = pkg_resources.files(reference).joinpath("hsa_mapping_all.txt")
+            map_path = str(file)  
+
+        mapping_df = pd.read_csv(map_path, sep="\t", dtype=str)
+        entrez_map  = mapping_df.set_index('entrez')['symbol'].to_dict()
+        ensembl_map = mapping_df.set_index('ensembl')['symbol'].to_dict()
+        uniprot_map = mapping_df.set_index('uniprot')['symbol'].to_dict()
+
+        relabel_map = {}
+        for node in G.nodes():
+            s = None
+            node_str = str(node)
+            s = entrez_map.get(node_str) or ensembl_map.get(node_str) or uniprot_map.get(node_str)
+            relabel_map[node] = s if s is not None else node  
+
+        G = nx.relabel_nodes(G, relabel_map)
 
     plot_matplot = True
     if pdf_path is None:
@@ -438,7 +463,7 @@ def plot(pickle_path: str,
     if pdf_path:
         outputs.append(f"PDF → {pdf_path}")
     if gephi_path:
-        outputs.append(f"Gephi CSV → {gephi_path}")
+        outputs.append(f"Gephi TSV → {gephi_path}")
     if cytoscape_path:
         outputs.append(f"Cytoscape GML → {cytoscape_path}")
 
@@ -453,6 +478,7 @@ def stats(dat_file: str,
           ppif: str = None,
           ddif: str = None,
           entrezpfamf: str = None,
+          map_path: str = None, 
           species: str = 'human'):
     """
     Output gene-level statistics for a rewired splicing-induced PPI network.
@@ -467,7 +493,7 @@ def stats(dat_file: str,
       species: Species identifier for reference selection (default: 'human').
     """
     
-    if ppif is None or ddif is None or entrezpfamf:
+    if ppif is None or ddif is None or entrezpfamf is None or map_path is None:
         if species.lower() == "mouse":
             if ppif is None:
                 ppif = str(pkg_resources.files(mouse_ref).joinpath("mouse_ppi.dat"))
@@ -475,6 +501,9 @@ def stats(dat_file: str,
                 ddif = str(pkg_resources.files(mouse_ref).joinpath("ddi_0.5.dat"))
             if entrezpfamf is None:
                 entrezpfamf = str(pkg_resources.files(mouse_ref).joinpath("mouse_entrez_pfam.txt"))
+            if map_path is None:
+                file = pkg_resources.files(mouse_ref).joinpath("mmu_mapping_all.txt")
+                map_path = str(file) 
             # if pfamcoordsf is None:
             #     pfamcoordsf = str(pkg_resources.files(mouse_ref).joinpath("mouse_pfam_genome_coords_sorted.txt.gz"))
             # if tbf is None:
@@ -490,6 +519,10 @@ def stats(dat_file: str,
             #     pfamcoordsf = str(pkg_resources.files(reference).joinpath("human_pfam_genome_coords_sorted.txt.gz"))
             # if tbf is None:
             #     tbf = str(pkg_resources.files(reference).joinpath("human_pfam_genome_coords_sorted.txt.gz"))
+            if map_path is None:
+                file = pkg_resources.files(reference).joinpath("hsa_mapping_all.txt")
+                map_path = str(file)  
+
 
     stats = rewired_edges_stat(dat_file)
     gain, loss, chaos = (int(stats[k]) for k in ("gain","loss","chaos"))
@@ -503,7 +536,7 @@ def stats(dat_file: str,
     background = get_background(ppif, ddif, entrezpfamf)
     with open(rewire_net, 'rb') as f:
         diff_splice_g = pickle.load(f)
-    gene_stats_df = rewired_genes(diff_splice_g, background)
+    gene_stats_df = rewired_genes(diff_splice_g, background, map_path)
     if out_file_prefix != None:
         gene_stats_df.to_csv(out_file_prefix + "_gene_degree.csv", index=False)
     return gene_stats_df
@@ -518,7 +551,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     rewire_p = subparsers.add_parser(
-        "rewire", help="calculate and output rewired network"
+        "run", help="calculate and output rewired network"
     )
 
     rewire_p.add_argument(
@@ -576,29 +609,41 @@ def main():
         help="Path to the '.edges.pickle' file (output of `rewire`)."
     )
     plot_p.add_argument(
-        '--with-labels', action='store_true',
+        '--with_labels', action='store_true',
         help="Draw node labels in the plot (default: False)."
     )
     plot_p.add_argument(
-        '--pdf-path', type=str, default=None,
+        '--pdf_path', type=str, default=None,
         help="If provided, write a PDF plot to this location."
     )
     plot_p.add_argument(
-        '--gephi-path', type=str, default=None,
+        '--gephi_path', type=str, default=None,
         help="If provided, write a Gephi-compatible CSV to this location."
     )
     plot_p.add_argument(
-        '--cytoscape-path', type=str, default=None,
+        '--cytoscape_path', type=str, default=None,
         help="If provided, write a Cytoscape .gml to this location."
     )
 
     plot_p.add_argument(
-    '--max_nodes', type=int, default=2000,
+        '--max_nodes', type=int, default=2000,
         help="Maximum number of nodes before disabling Matplotlib plotting (default: 2000)."
     )
     plot_p.add_argument(
         '--max_edges', type=int, default=10000,
         help="Maximum number of edges before disabling Matplotlib plotting (default: 10000)."
+    )
+    plot_p.add_argument(
+        '--symbol', type=bool, default=True,
+        help="Replace node id with gene symbol"
+    )
+    plot_p.add_argument(
+        '--map_path', type=str, default=None,
+        help="Path to text file that mapps between gene ids, where it has tab delineated columns: symbol, entrez, ensembl, uniprot. The pacakage has default files for mouse and human."
+    )
+    plot_p.add_argument(
+        '--species', type=str, default='human',
+        help="Species (default: human)."
     )
 
     stats_p = subparsers.add_parser(
@@ -639,6 +684,12 @@ def main():
         help="Entrez to Pfam mapping file (default: from src/reference for the given species)"
     )
     stats_p.add_argument(
+        "--map_path",
+        type=str,
+        default=None,
+        help="Path to text file that mapps between gene ids, where it has tab delineated columns: symbol, entrez, ensembl, uniprot. The pacakage has default files for mouse and human."
+    )
+    stats_p.add_argument(
         "--species",
         type=str,
         default="human",
@@ -648,8 +699,8 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command == "rewire":
-        rewire(args.in_file,
+    if args.command == "run":
+        run(args.in_file,
             args.out_file_prefix,
             skip=args.skip,
             dpsi_cut=args.dpsi_cut,
@@ -678,7 +729,10 @@ def main():
             gephi_path=args.gephi_path,
             cytoscape_path=args.cytoscape_path,
             max_nodes=args.max_nodes,
-            max_edges=args.max_edges
+            max_edges=args.max_edges,
+            symbol=args.symbol,
+            map_path=args.map_path,
+            species=args.species
         )
     elif args.command == "stats":
        stats(
@@ -688,6 +742,7 @@ def main():
             ppif=args.ppif,
             ddif=args.ddif,
             entrezpfamf=args.entrezpfamf,
+            map_path=args.map_path,
             species=args.species
         )
 

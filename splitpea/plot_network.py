@@ -16,7 +16,7 @@ def return_gephi(G, outfile_path):
             direction = "positive" if weight >= 0 else "negative"
             
             if G[gi][gj].get('chaos', False):
-                direction = "chaos-" + direction
+                direction = "chaos" 
 
             ppi_ddi_out = [gi, gj, str(abs(weight)), direction]
             f_out.write('\t'.join(ppi_ddi_out) + '\n')
