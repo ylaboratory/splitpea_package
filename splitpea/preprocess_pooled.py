@@ -168,10 +168,10 @@ def combine_spliced_exon(in_dir):
 
 def preprocess_pooled(
     compare_file: str,
-    psi_dir: str,
+    out_psi_dir: str,
     *,
     tissue: Optional[str] = None,
-    download_root: Optional[str] = None,
+    tissue_download_root: Optional[str] = None,
     normal_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
@@ -180,14 +180,22 @@ def preprocess_pooled(
 
     Args:
         compare_file:   Path to your compare.txt output file.
-        psi_dir:        Output directory containing PSI files that can be inputed to splitpea.
+        out_psi_dir:        Output directory containing PSI files that can be inputed to splitpea.
 
         tissue:         (optional) Tissue name from IRIS that will be dowloaded.
 
-        download_root:  (required if `tissue` is set) Root directory under which to
+        tissue_download_root:  (required if `tissue` is set) Root directory under which to
                         create GTEx_<Tissue>/splicing_matrix/.
 
         normal_path:    (optional) Path to a pre-downloaded normal splicing matrix file.
+    
+    e.g:
+        preprocess_pooled(
+            tissue="uterus",
+            download_root="/uterus",
+            compare_file="splicing_matrix.SE.cov10.TCGA_UCS_T.txt",
+            psi_dir="/UCS_uterus"
+        )
     """
     if bool(tissue) == bool(normal_path):
         raise ValueError("You must provide exactly one of `tissue` or `normal_path`.")
@@ -219,8 +227,8 @@ def preprocess_pooled(
             )
         suffix = slug_map[slug]
 
-        if not download_root:
-            raise ValueError("`download_root` must be set when using `tissue`.")
+        if not tissue_download_root:
+            raise ValueError("`tissue_download_root` must be set when using `tissue`.")
 
         remote_base = (
             "https://xinglabtrackhub.research.chop.edu"
@@ -229,7 +237,7 @@ def preprocess_pooled(
         fname       = f"splicing_matrix.SE.cov10.GTEx_{suffix}.txt"
         url         = f"{remote_base}/GTEx_{suffix}/splicing_matrix/{fname}"
 
-        work_dir    = os.path.join(download_root, f"GTEx_{suffix}", "splicing_matrix")
+        work_dir    = os.path.join(tissue_download_root, f"GTEx_{suffix}", "splicing_matrix")
         os.makedirs(work_dir, exist_ok=True)
         normal_file = os.path.join(work_dir, fname)
 
@@ -253,7 +261,7 @@ def preprocess_pooled(
         combined_file,  
         normal_file,    
         compare_file,
-        psi_dir
+        out_psi_dir
     )
 
-    return psi_dir
+    return out_psi_dir
