@@ -69,7 +69,7 @@ def calculate_delta_psi(sum_bg_file, bg_file, target_file, outdir):
         sorted_subs = np.sort(subtracts)
         m = len(sorted_subs)
         def ecdf(x):
-            # fraction of background diffs ≤ x
+            # fraction of background diffs <= x
             return np.searchsorted(sorted_subs, x, side='right') / m
         return ecdf
 
@@ -122,7 +122,7 @@ def calculate_delta_psi(sum_bg_file, bg_file, target_file, outdir):
     sample_cols_tcga = [c for c in tcga_all.columns if c not in group_cols]
     tcga_all = tcga_all[group_cols + sample_cols_tcga]
 
-    # 4) For each TCGA sample: compute ΔPSI and p-values
+    # 4) For each TCGA sample: compute delta PSI and p-values
     for sam in sample_cols_tcga:
         print(f"Processing sample {sam}...")
         tmp = tcga_all[group_cols + [sam]].copy()
