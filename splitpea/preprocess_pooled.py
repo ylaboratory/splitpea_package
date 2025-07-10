@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 
 def calculate_delta_psi(sum_bg_file, bg_file, target_file, outdir):
     """
-    Calculate delta PSI values and p-values for GTEx–TCGA exon comparisons.
+    Calculate delta PSI values and p-values for GTEx TCGA exon comparisons.
     
     Parameters:
     - sum_bg_file: path to the GTEx summarized background file (one psi column + grouping cols)

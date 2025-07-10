@@ -330,9 +330,9 @@ def stats(dat_file: str,
     Parameters:
       dat_file: Path to the input file containing the rewired network edges (e.g., one edge per line).
       rewire_net: Path to the file listing genes with differential splicing events.
-      out_file: Path (or prefix) for the output gene‐stats summary.
-      ppif: Protein–protein interaction reference file (default: human_ppi_0.5.dat).
-      ddif: Domain–domain interaction reference file (default: ddi_0.5.dat).
+      out_file: Path (or prefix) for the output gene stats summary.
+      ppif: Protein protein interaction reference file (default: human_ppi_0.5.dat).
+      ddif: Domain domain interaction reference file (default: ddi_0.5.dat).
       entrezpfamf: File mapping Entrez Gene IDs to Pfam domains (default: human_entrez_pfam.txt).
       species: Species identifier for reference selection (default: 'human').
     """
