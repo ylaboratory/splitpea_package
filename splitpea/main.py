@@ -248,7 +248,8 @@ def plot(pickle_path: str,
          max_edges: int = 10000,
          symbol: bool = True,
          map_path: str = None,
-         species: str = 'human'):
+         species: str = 'human',
+         self_edges: bool = False):
     """
     Load a pickled Graph (as created by `rewire(...)`) and call plot_rewired_network().
 
@@ -258,6 +259,7 @@ def plot(pickle_path: str,
     - pdf_path: if provided, write a PDF of the plotted network to this path.
     - gephi_path: if provided, write a Gephi-compatible CSV to this path.
     - cytoscape_path: if provided, write a Cytoscape GML to this path.
+    - self_edges: if you want to remove self edges from the plots
     """
 
     if not os.path.isfile(pickle_path):
@@ -266,6 +268,9 @@ def plot(pickle_path: str,
     with open(pickle_path, 'rb') as f:
         G = pickle.load(f)
     
+    if not self_edges:
+        G.remove_edges_from(nx.selfloop_edges(G))
+
     if symbol:
         if map_path is None or not os.path.isfile(map_path):
             if species == "mouse":
@@ -489,6 +494,10 @@ def main():
         '--species', type=str, default='human',
         help="Species (default: human)."
     )
+    plot_p.add_argument(
+        '--self_edges', type=bool, default=False,
+        help="Display self edges in plot (default: False)."
+    )
 
     stats_p = subparsers.add_parser(
     "stats",
@@ -631,7 +640,8 @@ def main():
             max_edges=args.max_edges,
             symbol=args.symbol,
             map_path=args.map_path,
-            species=args.species
+            species=args.species,
+            self_edges=args.self_edges
         )
     elif args.command == "stats":
        stats(

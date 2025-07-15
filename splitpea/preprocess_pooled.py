@@ -182,7 +182,8 @@ def preprocess_pooled(
         compare_file:   Path to your compare.txt output file.
         out_psi_dir:        Output directory containing PSI files that can be inputed to splitpea.
 
-        tissue:         (optional) Tissue name from IRIS that will be dowloaded.
+        tissue:         (optional) Tissue name from IRIS that will be dowloaded. 
+                        Y. Pan, J.W. Phillips, B.D. Zhang, M. Noguchi, E. Kutschera, J. McLaughlin, P.A. Nesterenko, Z. Mao, N.J. Bangayan, R. Wang, W. Tran, H.T. Yang, Y. Wang, Y. Xu, M.B. Obusan, D. Cheng, A.H. Lee, K.E. Kadash-Edmondson, A. Champhekar, C. Puig-Saus, A. Ribas, R.M. Prins, C.S. Seet, G.M. Crooks, O.N. Witte, & Y. Xing, IRIS: Discovery of cancer immunotherapy targets arising from pre-mRNA alternative splicing, Proc. Natl. Acad. Sci. U.S.A. 120 (21) e2221116120, https://doi.org/10.1073/pnas.2221116120 (2023).
 
         tissue_download_root:  (required if `tissue` is set) Root directory under which to
                         create GTEx_<Tissue>/splicing_matrix/.
@@ -243,6 +244,7 @@ def preprocess_pooled(
 
         if not os.path.exists(normal_file):
             print(f"Downloading {url} to {normal_file}")
+            print("Y. Pan, J.W. Phillips, B.D. Zhang, M. Noguchi, E. Kutschera, J. McLaughlin, P.A. Nesterenko, Z. Mao, N.J. Bangayan, R. Wang, W. Tran, H.T. Yang, Y. Wang, Y. Xu, M.B. Obusan, D. Cheng, A.H. Lee, K.E. Kadash-Edmondson, A. Champhekar, C. Puig-Saus, A. Ribas, R.M. Prins, C.S. Seet, G.M. Crooks, O.N. Witte, & Y. Xing, IRIS: Discovery of cancer immunotherapy targets arising from pre-mRNA alternative splicing, Proc. Natl. Acad. Sci. U.S.A. 120 (21) e2221116120, https://doi.org/10.1073/pnas.2221116120 (2023).")
             resp = requests.get(url, stream=True)
             resp.raise_for_status()
             with open(normal_file, "wb") as wf:
