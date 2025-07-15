@@ -259,7 +259,7 @@ def plot(pickle_path: str,
     - pdf_path: if provided, write a PDF of the plotted network to this path.
     - gephi_path: if provided, write a Gephi-compatible CSV to this path.
     - cytoscape_path: if provided, write a Cytoscape GML to this path.
-    - self_edges: if you want to remove self edges from the plots
+    - self_edges: if you want to keep self edges from the plots
     """
 
     if not os.path.isfile(pickle_path):
