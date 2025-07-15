@@ -550,7 +550,7 @@ def main():
     )
 
     delta_p = subparsers.add_parser(
-        "delta_psi",
+        "calculate_delta_psi",
         help="Calculate delta PSI values and p-values for normal vs compare exon comparisons"
     )
     delta_p.add_argument(
@@ -571,7 +571,7 @@ def main():
     )
 
     combine_p = subparsers.add_parser(
-        "combine",
+        "combine_spliced_exon",
         help="Combine individual spliced-exon PSI files into a single mean PSI file per exon"
     )
     combine_p.add_argument(
@@ -654,7 +654,7 @@ def main():
             map_path=args.map_path,
             species=args.species
         )
-    elif args.command == "delta_psi":
+    elif args.command == "calculate_delta_psi":
         calculate_delta_psi(
             sum_bg_file = args.sum_bg_file,
             bg_file = args.bg_file,
@@ -662,7 +662,7 @@ def main():
             outdir = args.outdir
         )
 
-    elif args.command == "combine":
+    elif args.command == "combine_spliced_exon":
         combine_spliced_exon(args.in_dir)
 
     elif args.command == "preprocess_pooled":
