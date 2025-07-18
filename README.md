@@ -1,7 +1,7 @@
 # Splitpea
 
 ...
-This documentation is old I will update!
+This documentation is old; I will start updating it soon!
 ...
 
 This is the Python package implementation of **Splitpea**: *SPLicing InTeractions PErsonAlized*.
