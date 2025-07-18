@@ -1,5 +1,9 @@
 # Splitpea
 
+...
+This documentation is old I will update!
+...
+
 This is the Python package implementation of **Splitpea**: *SPLicing InTeractions PErsonAlized*.
 
 Original repository: [https://github.com/ylaboratory/splitpea](https://github.com/ylaboratory/splitpea)\
