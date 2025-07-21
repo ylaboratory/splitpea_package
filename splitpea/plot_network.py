@@ -48,12 +48,16 @@ def return_cytoscape(G, outfile_path):
         if 'chaos' in data and 'weight' in data:
             if data['chaos']:
                 color = "#B8860B"   # dark yellow
+                direction = "chaos"
             elif data['weight'] < 0:
                 color = "#FF0000"   # red
+                direction = "loss"
             else:
                 color = "#0000FF"   # blue
+                direction = "gain"
             data['edgeColor'] = color
-            
+            data['rewired_direction'] = direction
+
     nx.write_gml(G, outfile_path)
 
 
