@@ -249,7 +249,8 @@ def plot(pickle_path: str,
          symbol: bool = True,
          map_path: str = None,
          species: str = 'human',
-         self_edges: bool = False):
+         self_edges: bool = False,
+         lcc: bool = True):
     """
     Load a pickled Graph (as created by `rewire(...)`) and call plot_rewired_network().
 
@@ -270,6 +271,10 @@ def plot(pickle_path: str,
     
     if not self_edges:
         G.remove_edges_from(nx.selfloop_edges(G))
+    
+    if lcc:
+        largest_cc = max(nx.connected_components(G), key=len)
+        G = G.subgraph(largest_cc).copy()
 
     if symbol:
         if map_path is None or not os.path.isfile(map_path):
@@ -498,6 +503,10 @@ def main():
         '--self_edges', type=bool, default=False,
         help="Display self edges in plot (default: False)."
     )
+    plot_p.add_argument(
+        '--lcc', type=bool, default=True,
+        help="Only display the largest connected component."
+    )
 
     stats_p = subparsers.add_parser(
     "stats",
@@ -641,7 +650,8 @@ def main():
             symbol=args.symbol,
             map_path=args.map_path,
             species=args.species,
-            self_edges=args.self_edges
+            self_edges=args.self_edges,
+            lcc = args.lcc
         )
     elif args.command == "stats":
        stats(
