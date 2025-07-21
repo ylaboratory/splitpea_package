@@ -45,6 +45,15 @@ def return_cytoscape(G, outfile_path):
             elif isinstance(value, np.bool_):
                 data[key] = bool(value)
 
+        if 'chaos' in data and 'weight' in data:
+            if data['chaos']:
+                color = "#B8860B"   # dark yellow
+            elif data['weight'] < 0:
+                color = "#FF0000"   # red
+            else:
+                color = "#0000FF"   # blue
+            data['edgeColor'] = color
+            
     nx.write_gml(G, outfile_path)
 
 
