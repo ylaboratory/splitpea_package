@@ -8,18 +8,25 @@ import numpy as np
 def return_gephi(G, outfile_path):
 
     with open(outfile_path, 'w') as f_out:
-        header = ["source", "target", "weight", "direction"]
+        header = ["source", "target", "weight", "direction", "color"]
         f_out.write('\t'.join(header) + '\n')
         
-        for gi, gj in nx.edges(G):
-            weight = G[gi][gj]['weight']
-            direction = "positive" if weight >= 0 else "negative"
+        for gi, gj in G.edges():
+            weight_val = G[gi][gj]['weight']
+            if G[gi][gj].get('chaos', False):
+                direction = "chaos"
+            else:
+                direction = "positive" if weight_val >= 0 else "negative"
             
             if G[gi][gj].get('chaos', False):
-                direction = "chaos" 
-
-            ppi_ddi_out = [gi, gj, str(abs(weight)), direction]
-            f_out.write('\t'.join(ppi_ddi_out) + '\n')
+                color = "#B8860B"   # dark yellow
+            elif weight_val < 0:
+                color = "#FF0000"   # red
+            else:
+                color = "#0000FF"   # blue
+            
+            row = [gi, gj, str(abs(weight_val)), direction, color]
+            f_out.write('\t'.join(row) + '\n')
 
 def return_cytoscape(G, outfile_path):
 
