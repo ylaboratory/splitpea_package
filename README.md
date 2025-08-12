@@ -126,9 +126,8 @@ G = splitpea.run(["diffSplice.psivec", "diffSplice.dpsi"], "out/condA",
 G = splitpea.run("SE.MATS.JCEC.txt", "out/condB",
                  differential_format="rmats")
 ```
----
 
-## `run` — Parameters and defaults
+## `run` 
 
 **Required:**
 - **`in_file`** —  
@@ -144,13 +143,13 @@ G = splitpea.run("SE.MATS.JCEC.txt", "out/condB",
 - `--sigscore_cut` *(float)* — Significance score cutoff (default: `0.05`)
 - `--include_nas` *(bool)* — Include NAs in significance testing (default: `True`)
 - `--index {0,1}` — Coordinate indexing (default: auto-set per format)
-- `--species {human,mouse}` — Which bundled references to use (default: `human`)
 - `--map_path` — Custom mapping file between IDs and symbols (tab-delimited with headers: `symbol  entrez  ensembl  uniprot`)
 - `--edge_stats_file` — Append gain/loss/chaos counts to a stats file
 
 **Reference files**
 Splitpea ships bundled reference datasets for human and mouse. These load automatically based on `--species` unless you override paths.
 
+- `--species {human,mouse}` — Which bundled references to use (default: `human`)
 - `ppif` — protein–protein interactions
 - `ddif` — domain–domain interactions
 - `entrezpfamf` - Entrez–Pfam mapping*
