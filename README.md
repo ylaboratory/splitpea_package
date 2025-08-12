@@ -1,9 +1,5 @@
 # Splitpea
 
-...
-This documentation is old; I will start updating it soon!
-...
-
 This is the Python package implementation of **Splitpea**: *SPLicing InTeractions PErsonAlized*.
 
 Original repository: [https://github.com/ylaboratory/splitpea](https://github.com/ylaboratory/splitpea)\
@@ -42,87 +38,6 @@ Functions that depend on `tabix` will raise an error if `tabix` is not found.
 
 ---
 
-## Usage
-
-Splitpea can be run **from the command line** or **within Python**.
-
-### Command-line
-
-```bash
-splitpea <in_file> <out_file_prefix> [options]
-```
-
-Examples:
-
-- **Splitpea format**:
-
-  ```bash
-  splitpea psi.txt sample1
-  ```
-
-- **rMATS input**:
-
-  ```bash
-  splitpea psi_rmats.txt sample1 --input_format rmats
-  ```
-
-- **SUPPA2 input**:
-
-  ```bash
-  splitpea diffSplice.psivec diffSplice.dpsi sample1 --input_format suppa2
-  ```
-
-**Notes:**
-
-- Currently, only **skipped exon (SE)** events are supported across all input types.
-- rMATS support works for **JCEC and JC outputs**.
-- For SUPPA2 input, provide both `.psivec` and `.dpsi` files (order does not matter as long as one ends with `.psivec` and the other ends with `.dpsi`).
-- The default splitpea format (i.e. regular) requires a `.txt` file (tab-seperated) with the following header:
-  ```
-  ensembl.id  symbol  chr  strand  exon.start  exon.end  psi.gtex  psi.tcga  delta.psi  pval
-  ```
-
-> **Output:**\
-> Splitpea automatically generates a `.dat` file (edge list) and a `.pickle` file (NetworkX graph) based on the provided output prefix. Additional optional outputs files also use the same output prefix.
-
----
-
-### Python
-
-```python
-import splitpea
-
-# Default run
-net = splitpea.run("psi.txt", "sample1")
-
-# rMATS input
-net = splitpea.run("psi_rmats.txt", "sample1", input_format="rmats")
-
-# SUPPA2 input
-net = splitpea.run(["diffSplice.psivec", "diffSplice.dpsi"], "sample1", input_format="suppa2")
-```
-
----
-
-## Features
-
-- Supports multiple input formats: Splitpea, rMATS, SUPPA2
-- Species-specific reference handling:
-  - Human (default) or mouse
-  - Option to specify custom reference files, but default reference data is pre-built into the package 
-- Adjustable PSI and significance thresholds
-- Outputs:
-  - `.edges.dat`: Edge list with weights and if an edge is chaos 
-  - `.edges.pickle`: NetworkX graph object
-- Optional outputs:
-  - Gene degree statistics
-  - Edge rewiring summaries
-  - Auto-generated network plots
-  - Gephi-compatible TSV files
-  - Cytoscape-compatible gml files
-
----
-
 ## Requirements
 
 - Python >= 3.8
@@ -131,173 +46,276 @@ net = splitpea.run(["diffSplice.psivec", "diffSplice.dpsi"], "sample1", input_fo
 
 ---
 
-## Full Parameters
+## Features
 
-### Python 
+- Adjustable PSI and significance thresholds
+- Bundled reference files, with options for customization
+- Species-specific references: human (default) or mouse
+- Main Outputs:
+  - `.edges.dat`: Edge list with weights and if an edge is chaos 
+  - `.edges.pickle`: NetworkX graph object
+- Additional features and outputs:
+  - Edge rewiring summaries
+  - Gene level statistics
+  - Auto-generated network plots
+  - Gephi-compatible TSV files
+  - Cytoscape-compatible gml files
 
+---
+
+## Two modes
+
+1. **Sample-specific mode** (`differential_format=sample_specific`)  
+   - Input: a **differential exon table** for a single sample.  
+   - Tab-delimited header:
+     ```
+     ensembl.id  symbol  chr  strand  exon.start  exon.end  psi.gtex  psi.tcga  delta.psi  pval
+     ```
+   - Can be generated via `preprocess_pooled` (see below) from two splicing matrices: one for background samples and another for samples to compare individually against it.
+
+2. **Condition-specific mode** (`differential_format=suppa2` or `rmats`)  
+   - **SUPPA2**: provide both `.psivec` and `.dpsi` (order agnostic)  
+   - **rMATS**: use `SE.MATS.JC.txt` or `SE.MATS.JCEC.txt`
+
+> Currently, only **skipped exon (SE)** events are supported.
+
+---
+
+## Quick start
+
+Splitpea can be run **from the command line** or **within Python**.
+
+Main subcommands:
+- **`run`** — Build a rewired network
+- **`plot`** — Visualize a saved network
+- **`stats`** — Compute edge/gene statistics
+- **`preprocess_pooled`** — Generate the differential exon table for sample-specific mode
+
+
+### Command line
+
+**Examples:**
+```bash
+# Sample-specific mode
+splitpea run sample1-psi.txt out/sample1
+
+# Condition-specific mode (SUPPA2)
+splitpea run diffSplice.psivec diffSplice.dpsi out/condA \
+  --differential_format suppa2
+
+# Condition-specific mode (rMATS)
+splitpea run SE.MATS.JCEC.txt out/condB \
+  --differential_format rmats
+```
+> **Note:** The second argument (`out/sample1`, `out/condA`, etc.) is the **output file prefix**.
+
+### Python API
+
+**Examples:**
 ```python
-splitpea.run(
-    in_file, out_file_prefix: str, skip: int = 1, dpsi_cut: float = 0.05, sigscore_cut: float = 0.05,
-    include_nas: bool = True, verbose: bool = False, input_format: str = "regular",
-    ppif: str = None, ddif: str = None, entrezpfamf: str = None, pfamcoordsf: str = None, tbf: str = None,
-    species: str = "human", index: int = None, edge_stats_file: str = None,
-    gene_degree_stats: bool = False, plot_net: bool = False, gephi_tsv: bool = False, 
-    cytoscape_gml: bool = False, map_path: str = None
+import splitpea
+
+# Sample-specific mode
+G = splitpea.run("sample1-psi.txt", "out/sample1")
+
+# Condition-specific mode (SUPPA2)
+G = splitpea.run(["diffSplice.psivec", "diffSplice.dpsi"], "out/condA",
+                 differential_format="suppa2")
+
+# Condition-specific mode (rMATS)
+G = splitpea.run("SE.MATS.JCEC.txt", "out/condB",
+                 differential_format="rmats")
+```
+---
+
+## `run` — Parameters and defaults
+
+**Required:**
+- **`in_file`** —  
+  - `sample_specific`: one file path  
+  - `suppa2`: two file paths (`.psivec` and `.dpsi`)  
+  - `rmats`: one JC or JCEC file path
+- **`out_file_prefix`** — Prefix for all output files (directory + base name)
+
+**Options:**
+- `--differential_format {sample_specific,suppa2,rmats}` (default: `sample_specific`)
+- `--skip` *(int)* — Number of lines to skip in input file (default: `1`)
+- `--dpsi_cut` *(float)* — Delta PSI cutoff (default: `0.05`)
+- `--sigscore_cut` *(float)* — Significance score cutoff (default: `0.05`)
+- `--include_nas` *(bool)* — Include NAs in significance testing (default: `True`)
+- `--index {0,1}` — Coordinate indexing (default: auto-set per format)
+- `--species {human,mouse}` — Which bundled references to use (default: `human`)
+- `--map_path` — Custom mapping file between IDs and symbols (tab-delimited with headers: `symbol  entrez  ensembl  uniprot`)
+- `--edge_stats_file` — Append gain/loss/chaos counts to a stats file
+
+**Reference files**
+Splitpea ships bundled reference datasets for human and mouse. These load automatically based on `--species` unless you override paths.
+
+- `ppif` — protein–protein interactions
+- `ddif` — domain–domain interactions
+- `entrezpfamf` - Entrez–Pfam mapping*
+- `pfamcoordsf` - Pfam genome coordinates
+- `tbf` - Tabix index ( usually the .tbi for pfamcoordsf)
+- `map_path` - Gene ID mapping: symbol/entrez/ensembl/uniprot
+
+Overriding references:
+- Pass custom paths to the corresponding parameters. 
+
+---
+
+
+
+### Outputs
+
+For each run (`out_file_prefix`), Splitpea produces:
+
+- `<prefix>.edges.dat` — edge list with `node1  node2  weight  chaos`
+- `<prefix>.edges.pickle` — NetworkX graph
+
+---
+
+## Other Subcommands
+
+### `plot`
+Load a saved network (`.edges.pickle`) and export it in various formats or as a plot.
+
+**Example (Python):**
+```python
+splitpea.plot(
+    pickle_path="out/sample1.edges.pickle",
+    pdf_path="plot/sample1_plot.pdf",         # optional
+    gephi_path="plot/sample1_gephi.csv",      # optional
+    cytoscape_path="plot/sample1_cyto.gml",   # optional
+    with_labels=True,
+    symbol=True,
+    map_path=None,        # use bundled mapping if None
+    species="human",
+    self_edges=False,
+    lcc=True
 )
 ```
 
-### Command Line 
+**Parameters:**
+- **`pickle_path`** *(required)* — Path to `.edges.pickle` file generated by `splitpea run`.
+- **`--with_labels`** — Draw node labels in plots. Default: `False`.
+- **`--pdf_path`** — Path to save a PDF of the plotted network via Matplotlib. Omit to skip PDF.
+- **`--gephi_path`** — Path to save a Gephi-compatible TSV file. Omit to skip.
+- **`--cytoscape_path`** — Path to save a Cytoscape-compatible `.gml` file. Omit to skip.
+- **`--symbol`** — If `True` (default), replace Entrez IDs with gene symbols.
+- **`--map_path`** — Path to custom gene ID mapping file. Defaults to bundled mapping if not provided.
+- **`--species`** — Species for mapping defaults (`human` or `mouse`).
+- **`--self_edges`** — If `True`, keep self-loop edges in output. Default: `False`.
+- **`--lcc`** — If `True` (default), plot only the largest connected component.
+- **`--max_nodes`** — Maximum nodes allowed in matplotlib plotting; larger graphs skip matplotlib. Default: `2000`.
+- **`--max_edges`** — Maximum edges allowed in matplotlib plotting; larger graphs skip matplotlib. Default: `10000`.
 
-To view all command-line options:
-```bash
-splitpea -h
+**Outputs (depending on args):**
+- PDF plot, Gephi TSV, and/or Cytoscape GML.
+
+--- 
+
+### `stats`
+Summarize edge counts and write per-gene degree stats.
+
+Example (Python):
+```python 
+splitpea.stats(
+    dat_file="out/sample1.edges.dat",
+    rewire_net="out/sample1.edges.pickle",
+    out_file_prefix="stats/sample1",
+    species="human",
+    map_path=None,      # use bundled if None
+    ppif=None, ddif=None, entrezpfamf=None  # override to use custom references
+)
 ```
-which lists: `in_file`, `out_file_prefix`, `--input_format`, `--skip`, `--dpsi_cut`, `--sigscore_cut`, `--include_nas`, `--verbose`, `--ppif`, `--ddif`, `--entrezpfamf`, `--pfamcoordsf`, `--tbf`, `--species`, `--index`, `--edge_stats_file`, `--gene_degree_stats`, `--plot_net`, `--gephi_tsv`, `--cytoscape_gml`, `--map_path` and explanations for each paramter.  
 
+**Parameters:**
+- **`dat_file`** *(required)* — Path to `.edges.dat` file generated by `splitpea.run`.
+- **`rewire_net`** *(required)* — Path to `.edges.pickle` file for the same network.
+- **`out_file_prefix`** *(required)* — Prefix for output files (e.g., `stats/sample1`).
+- **`ppif`** — Path to PPI reference file. Defaults to bundled species reference.
+- **`ddif`** — Path to DDI reference file. Defaults to bundled species reference.
+- **`entrezpfamf`** — Path to Entrez–Pfam mapping file. Defaults to bundled species reference.
+- **`map_path`** — Path to gene ID mapping file. Defaults to bundled mapping if not provided.
+- **`species`** — Species for selecting default references (`human` or `mouse`).
+
+**Outputs:**
+- Console printout of:
+  - **Gain** — number of edges gained in rewired network
+  - **Loss** — number of edges lost in rewired network
+  - **Chaos** — number of chaos edges
+- `<out_file_prefix>_gene_stats.csv` containing:
+  - Entrez ID
+  - Gene symbol
+  - Node degree in rewired network
+  - Normalized degree relative to background PPI network
+  - Counts of gain/loss/chaos edges incident to the gene
+
+### `preprocess_pooled`
+
+End-to-end helper that builds sample-specific Splitpea inputs by comparing each target sample to a*pooled normal background.  
+It either downloads a normal splicing matrix from IRIS (GTEx) for a chosen tissue or uses a normal matrix you provide.
+
+Pipeline: 
+1. Load a target splicing matrix (`compare_file`) with exon rows and sample columns (PSI values).
+2. Obtain a normal/background splicing matrix:
+   - Either download GTEx `<Tissue>` from IRIS (if `tissue` is given), or
+   - Use your local file (`normal_path`).
+3. Compute mean PSI per exon for the background (pooled normal).
+4. For each target sample, compute delta PSI vs. background and a p-value.
+5. Write per-sample Splitpea-ready files (`{sample}-psi.txt`) into `out_psi_dir`.
+
+Example (Python):
+
+```python
+# Option A: download and use IRIS/GTEx matrix
+splitpea.preprocess_pooled(
+    compare_file="compare.txt",
+    out_psi_dir="out_psi",
+    tissue="Brain",
+    tissue_download_root="/data/iris_cache"   # creates GTEx_<Tissue>/splicing_matrix/ here
+)
+
+# Option B: use a local normal matrix
+splitpea.preprocess_pooled(
+    compare_file="compare.txt",
+    out_psi_dir="out_psi",
+    normal_path="/path/to/GTEx_Brain/splicing_matrix.tsv"
+)
+```
+
+**Inputs:**
+- **`compare_file`** *(required)* — Target (case) splicing matrix to compare against the pooled normal.  
+  - Tab-delimited; rows = exons, columns = samples; values = PSI \[0–1\].  
+  - Expected header example:
+    ```
+    AC  GeneName  chr  strand  exonStart  exonEnd  upstreamEE  downstreamES  sample1  sample2  ...
+    ```
+- **Normal/background matrix** — Provide **one** of:
+  - **`tissue`** — IRIS/GTEx tissue name to auto-download the background matrix (e.g., `Brain`, `AdiposeTissue`, …).  
+    Optional: **`tissue_download_root`** to control where the `GTEx_<Tissue>/splicing_matrix/` folder is created.
+  - **`normal_path`** — Path to a pre-downloaded normal splicing matrix (same exon schema; PSI values).
+
+> You must supply **either** `tissue` **or** `normal_path`. If both are given, `normal_path` is used.
+
+**Parameters:**
+- **`compare_file`** *(str, required)* — Path to the target splicing matrix to be compared.
+- **`out_psi_dir`** *(str, required)* — Output directory for per-sample Splitpea files (`{sample}-psi.txt`). Will be created if missing.
+- `tissue` *(str)* — IRIS/GTEx tissue name to auto-download the normal matrix.  
+    **Must be one of:**
+    `AdiposeTissue`, `AdrenalGland`, `Bladder`, `Blood`, `BloodVessel`, `Brain`, `Breast`, `CervixUteri`, `Colon`, `Esophagus`, `FallopianTube`, `Heart`, `Kidney`, `Liver`, `Lung`, `Muscle`, `Nerve`, `Ovary`, `Pancreas`, `Pituitary`, `Prostate`, `SalivaryGland`, `Skin`, `SmallIntestine`, `Spleen`, `Stomach`, `Testis`, `Thyroid`, `Uterus`, `Vagina`. 
+- **`tissue_download_root`** *(str, optional)* — Root directory for the IRIS download cache (creates `GTEx_<Tissue>/splicing_matrix/` under this path).
+- **`normal_path`** *(str, optional)* — Path to an existing normal/background splicing matrix file; bypasses download.
+
+**Outputs (written to `out_psi_dir`):**
+- **`{sample}-psi.txt`** files (one per target sample), each a **Splitpea (sample-specific) format** table:
 
 ---
 
-### Important Notes
+## Tutorials
 
-- **Species Selection:**
-
-  - Default: `species="human"`
-  - To use mouse references: `species="mouse"`
-
-- **Reference Files:**
-
-  - Defaults are bundled for human and mouse.
-  - Custom references can be supplied manually: `ppif` (PPI file), `ddif` (DDI file), and mappings ( including `entrezpfamf`, `pfamcoordsf`, and `tbf`) (note: `tbf` is often the same file as `pfamcoordsf`). `map_path` is a path to a .txt file containing gene ID mappings between `symbol`, `entrez`, `ensembl`, and `uniprot` identifiers (where those are the header/first line of the tab-seperated text file). There are default mappings built into the package, but you can define your own/update the mapping if you so wish.
-
-- **Input Handling:**
-
-  - `skip=1` by default to skip the header.
-  - `index`: coordinate system adjustment:
-    - 0-based for Splitpea format and rMATS input
-    - 1-based for SUPPA2 input
-
-- **Additional Outputs:**
-
-  - `edge_stats_file`:  Appends rewired edge statistics per sample.  If file doesn't exist, it creates a new one with header:
-
-    ```
-    sample	num_gain_edges	num_loss_edges	num_chaos_edges
-    ```
-
-    (`sample` is simply the output prefix.)
-
-  - `gene_degree_stats=True`:  Saves node degree stats including:
-
-    - Node degree
-    - Normalized degree = (degree in rewired network) / (degree in background PPI)
-      - background network represent PPI network unaffected by splicing changes
-
-  - `plot_net=True`:  Quick network plot with matplotlib (may crash for very large networks; it is recommended to use dedicated network visualization software, such as Gephi, for better handling and visualization of  the rewired networks).
-
-  - `gephi_tsv=True`:  Saves a Gephi-compatible TSV file.
-
-  - `cytoscape_gml=True`: Saves a Cytoscape-compatible gml file
-
----
-
-## Extra functionality: 
-
-(running the pipeline as shown in the [original repo example](https://github.com/ylaboratory/splitpea/tree/master))
-
-In addition to Splitpea itself, this package includes several extra utility functions, derived from the original GitHub repository, that can be run (only via Python code). These functions enable preprocessing steps such as combining exon usage files, calculating differential splicing (delta PSI) in "Splitpea format", building consensus networks across patients, and constructing background PPI networks.
-
-Note: These preprocessing functions are mainly designed for use with rMATS files, particularly PSI-based alternative splicing (skipped exon) matrices.
-
-Example of expected input format:
-
-```
-AC	GeneName	chr	strand	exonStart	exonEnd	upstreamEE	downstreamES	sample1	sample2	sample3	...
-```
-
-Example pipeline: 
-
-```python
-# 1. Combine spliced exons across a folder
-splitpea.combine_spliced_exon("/path/to/psi_files")
-
-# This function averages exon PSI values across multiple samples in a folder.
-# For each spliced exon input file, it computes the mean PSI value across samples,
-# and outputs a summarized file with the mean PSI.
-# Inputs:
-# - `in_dir`: directory containing differential splicing PSI files (txt format).
-# Output:
-# - For each input file, generates a `{sample}_combined_mean.txt` summarizing PSI per exon.
-
-# 2. Calculate delta PSI between normal and tumor
-splitpea.calculate_delta_psi("normal_combined.txt", "normal.txt", "tumor.txt", "/path/to/psi_files")
-
-# This function calculates the delta PSI (difference in exon inclusion levels) and associated p-values
-# between a background condition (e.g., normal tissues) and a target condition (e.g., tumors).
-# It compares average PSI values, performs statistical testing, and outputs files formatted
-# for direct input into Splitpea for network construction.
-# Inputs:
-# - `sum_bg_file`: summarized background PSI values.
-# - `bg_file`: raw sample-wise background PSI data.
-# - `target_file`: raw sample-wise target PSI data.
-# - `outdir`: output directory for the resulting delta PSI + p-value files.
-# Output:
-# - Files named {sample}-psi.txt with exon-level delta PSI and p-values, ready for network building.
-
-# 3. Run Splitpea (see below)
-
-# 4. Create consensus network across multiple patients
-splitpea.get_consensus_network("/path/to/splitpea_output")
-
-# This function loads individual patient-specific Splitpea networks from a directory,
-# separates edges into positive (gained) and negative (lost) rewiring edges,
-# and constructs two consensus graphs: one for consensus positive edges and one for consensus negative edges.
-# It counts how many times each edge appears across the networks and sums edge weights accordingly.
-# Outputs:
-# - `consensus_network_neg.pickle`: consensus network of lost (negative) interactions.
-# - `consensus_network_pos.pickle`: consensus network of gained (positive) interactions.
-
-# 5. Construct the "background" PPI network
-splitpea.get_background(ppif, ddif, entrezpfamf)
-
-# This function constructs the "background" PPI network needed for downstream Splitpea analysis.
-# It requires the following reference files:
-# - `ppif`: protein-protein interaction file
-# - `ddif`: domain-domain interaction file
-# - `entrezpfamf`: gene-to-Pfam domain mapping file
-# The resulting background network represents the baseline set of protein interactions assuming no alternative splicing-induced changes.
-```
-
-### Running Splitpea on Multiple Samples Example (Python)
-
-```python
-import os
-import splitpea
-
-data_dir = "/content/psis"
-output_dir = "/content/output"
-os.makedirs(output_dir, exist_ok=True)
-
-for file in os.listdir(data_dir):
-    if file.endswith(".txt"):
-        input_path = os.path.join(data_dir, file)
-        output_prefix = os.path.join(output_dir, file.replace("-psi.txt", ""))
-        splitpea.run(input_path, output_prefix)
-```
-
-### Command Line Version
-
-```bash
-#!/bin/bash
-
-data_dir="/content/psis"
-output_dir="/content/output"
-mkdir -p "$output_dir"
-
-for filepath in "$data_dir"/*.txt; do
-  filename=$(basename "$filepath" -psi.txt)
-  splitpea "$filepath" "$output_dir/$filename"
-done
-```
+- **Condition-specific mode (SUPPA2 / rMATS)** — _notebook/colab link (add later)_
+- **Sample-specific mode (pooled normal)** — _notebook/colab link (add later)_
 
 ---
 
