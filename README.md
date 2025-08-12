@@ -36,7 +36,6 @@ conda install -c bioconda tabix
 
 Functions that depend on `tabix` will raise an error if `tabix` is not found.
 
----
 
 ## Requirements
 
@@ -44,7 +43,6 @@ Functions that depend on `tabix` will raise an error if `tabix` is not found.
 - Packages:
   - `numpy`, `networkx`, `intervaltree`, `ipykernel`, `matplotlib`, `plotnine`, `scikit-learn`, `adjustText`, `importlib_resources`
 
----
 
 ## Features
 
