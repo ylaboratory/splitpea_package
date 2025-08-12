@@ -214,7 +214,7 @@ splitpea.plot(
 --- 
 
 ### `stats`
-Summarize edge counts and write per-gene degree stats.
+Summarize edge counts and write per-gene statistics.
 
 Example (Python):
 ```python 
@@ -249,6 +249,8 @@ splitpea.stats(
   - Node degree in rewired network
   - Normalized degree relative to background PPI network
   - Counts of gain/loss/chaos edges incident to the gene
+
+--- 
 
 ### `preprocess_pooled`
 
