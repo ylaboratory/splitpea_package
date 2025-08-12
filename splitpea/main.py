@@ -53,7 +53,7 @@ def run(in_file,
         sigscore_cut: float = 0.05,
         include_nas: bool = True,
         verbose: bool = False,
-        input_format: str = "regular",
+        differential_format: str = "sample_specific",
         ppif: str = None,
         ddif: str = None,
         entrezpfamf: str = None,
@@ -71,16 +71,19 @@ def run(in_file,
     Run the splicing-specific network pipeline.
 
     Parameters:
-      in_file: If input_format is 'regular', a file path (str) to the input file with
-               differentially expressed exons.
-               If input_format is 'suppa2', a list/tuple of 2 file paths: [psivec_file, dpsi_file].
+      in_file:  Mode 1: 
+                If differential_format is 'sample_specific', a file path (str) to the input file with
+                differentially expressed exons.
+                Mode 2:
+                If differential_format is 'suppa2', a list/tuple of 2 file paths: [psivec_file, dpsi_file].
+                If differential_format is 'rmats', a file path to the input JCEC or JC file. 
       out_file_prefix: Prefix for output files.
       skip: Number of lines to skip in the input file (default=0).
       dpsi_cut: Delta PSI cutoff (default=0.05).
       sigscore_cut: Significance score cutoff (default=0.05).
       include_nas: Include NAs in significance testing (default=True).
       verbose: Enable verbose logging (default=False).
-      input_format: Either 'regular' (default) or 'suppa2'.
+      differential_format: Either 'sample_specific' (default) or 'suppa2' or 'rmats'.
       species: Defaults to human.
       index: If exon files has indx 1 or 0-based. 
       edge_stats_file: Path to file that stores rewired edge stats. 
@@ -99,7 +102,7 @@ def run(in_file,
     if verbose:
         logger.setLevel(logging.INFO)
 
-    if input_format.lower() == "suppa2":
+    if differential_format.lower() == "suppa2":
         if not (isinstance(in_file, (list, tuple)) and len(in_file) == 2):
             raise ValueError("For SUPPA2 input format, in_file must be a list or tuple of 2 file paths: [psivec_file, dpsi_file].")
         psivec_file, dpsi_file = in_file
@@ -123,12 +126,12 @@ def run(in_file,
     else:
         if type(in_file) != str:
             if len(in_file) > 1:
-                raise ValueError("For input_formats other than SUPPA2, only a single input file is allowed.")
+                raise ValueError("For differential_formats other than SUPPA2, only a single input file is allowed.")
             in_file = in_file[0]
         if index is None:
             index = 0 
     
-    if input_format.lower() == "rmats":
+    if differential_format.lower() == "rmats":
         in_file = parse_rmats(in_file)
         if skip is None:
             skip = 1
@@ -228,7 +231,7 @@ def run(in_file,
         logger.info("Outputing gml for network...")
         plot_rewired_network(diff_splice_g, with_labels = True, plot_matplot = False, cytoscape_path=out_file_prefix + '_cyto.gml')
     
-    if input_format.lower() in ("rmats", "suppa2"):
+    if differential_format.lower() in ("rmats", "suppa2"):
         try:
             os.remove(in_file)
             logger.info("Temporary file %s deleted.", in_file)
@@ -414,8 +417,8 @@ def main():
     )
     rewire_p.add_argument('out_file_prefix', 
                         help="Prefix for output files.")
-    rewire_p.add_argument('--input_format', type=str, choices=['regular', 'suppa2', 'rmats'], default='regular', 
-                        help="Input file format (default: regular).")
+    rewire_p.add_argument('--differential_format', type=str, choices=['sample_specific', 'suppa2', 'rmats'], default='sample_specific', 
+                        help="Input file format (default: sample_specific).")
     rewire_p.add_argument('--skip', type=int, default=1, 
                         help="Number of lines to skip in the input file (default: 1).")
     rewire_p.add_argument('--dpsi_cut', type=float, default=0.05, 
@@ -624,7 +627,7 @@ def main():
             sigscore_cut=args.sigscore_cut,
             include_nas=args.include_nas,
             verbose=args.verbose,
-            input_format=args.input_format,
+            differential_format=args.differential_format,
             ppif=args.ppif,
             ddif=args.ddif,
             entrezpfamf=args.entrezpfamf,
