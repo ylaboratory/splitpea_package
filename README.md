@@ -155,8 +155,7 @@ Splitpea ships bundled reference datasets for human and mouse. These load automa
 - `tbf` - Tabix index ( usually the .tbi for pfamcoordsf)
 - `map_path` - Gene ID mapping: symbol/entrez/ensembl/uniprot
 
-Overriding references:
-- Pass custom paths to the corresponding parameters. 
+> To override default bundled references, pass custom paths to the corresponding parameters. 
 
 ---
 
@@ -168,7 +167,8 @@ For each run (`out_file_prefix`), Splitpea produces:
 
 - `<prefix>.edges.dat` — edge list with `node1  node2  weight  chaos`
 - `<prefix>.edges.pickle` — NetworkX graph
-
+-
+> Python API: `splitpea.run(...)` returns the rewired `networkx.Graph`.
 ---
 
 ## Other Subcommands
@@ -238,9 +238,9 @@ splitpea.stats(
 
 **Outputs:**
 - Console printout of:
-  - **Gain** — number of edges gained in rewired network
-  - **Loss** — number of edges lost in rewired network
-  - **Chaos** — number of chaos edges
+  - Gain — number of edges gained in rewired network
+  - Loss — number of edges lost in rewired network
+  - Chaos — number of chaos edges
 - `<out_file_prefix>_gene_stats.csv` containing:
   - Entrez ID
   - Gene symbol
@@ -252,10 +252,10 @@ splitpea.stats(
 
 ### `preprocess_pooled`
 
-End-to-end helper that builds sample-specific Splitpea inputs by comparing each target sample to a*pooled normal background.  
-It either downloads a normal splicing matrix from IRIS (GTEx) for a chosen tissue or uses a normal matrix you provide.
+Helper function that builds sample-specific Splitpea inputs by comparing each target sample to a*pooled normal background.  
+It either downloads a normal splicing matrix from IRIS (GTEx) for a chosen tissue or a user can provide their own normal matrix.
 
-Pipeline: 
+What the function does: 
 1. Load a target splicing matrix (`compare_file`) with exon rows and sample columns (PSI values).
 2. Obtain a normal/background splicing matrix:
    - Either download GTEx `<Tissue>` from IRIS (if `tissue` is given), or
@@ -307,14 +307,14 @@ splitpea.preprocess_pooled(
 - **`normal_path`** *(str, optional)* — Path to an existing normal/background splicing matrix file; bypasses download.
 
 **Outputs (written to `out_psi_dir`):**
-- **`{sample}-psi.txt`** files (one per target sample), each a **Splitpea (sample-specific) format** table:
+- **`{sample}-psi.txt`** files (one per target sample), each a Splitpea (sample-specific) format table.
 
 ---
 
 ## Tutorials
 
 - **Condition-specific mode (SUPPA2 / rMATS)** — _notebook/colab link (add later)_
-- **Sample-specific mode (pooled normal)** — _notebook/colab link (add later)_
+- **Sample-specific mode** — _notebook/colab link (add later)_
 
 ---
 
