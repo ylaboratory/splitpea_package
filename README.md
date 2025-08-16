@@ -258,9 +258,9 @@ It either downloads a normal splicing matrix from IRIS (GTEx) for a chosen tissu
 What the function does: 
 1. Load a target splicing matrix (`compare_file`) with exon rows and sample columns (PSI values).
 2. Obtain a normal/background splicing matrix:
-   - Either download GTEx `<Tissue>` from IRIS (if `tissue` is given), or
-   - Use your local file (`normal_path`).
-3. Compute mean PSI per exon for the background (pooled normal).
+   - Either download GTEx `<Tissue>` from IRIS (if `background` is given), or
+   - Use your local file (`background_path`).
+3. Compute mean PSI per exon for the background.
 4. For each target sample, compute delta PSI vs. background and a p-value.
 5. Write per-sample Splitpea-ready files (`{sample}-psi.txt`) into `out_psi_dir`.
 
@@ -270,44 +270,59 @@ Example (Python):
 # Option A: download and use IRIS/GTEx matrix
 splitpea.preprocess_pooled(
     compare_file="compare.txt",
-    out_psi_dir="out_psi",
-    tissue="Brain",
-    tissue_download_root="/data/iris_cache"   # creates GTEx_<Tissue>/splicing_matrix/ here
+    background="Brain",
+    background_download_root="/data/iris_cache",   # creates GTEx_<Tissue>/splicing_matrix/ here
+    out_psi_dir="out_psi"
 )
 
 # Option B: use a local normal matrix
 splitpea.preprocess_pooled(
     compare_file="compare.txt",
-    out_psi_dir="out_psi",
-    normal_path="/path/to/GTEx_Brain/splicing_matrix.tsv"
+    background_path="/path/to/GTEx_Brain/splicing_matrix.tsv",
+    out_psi_dir="out_psi"
 )
 ```
-
-**Inputs:**
-- **`compare_file`** *(required)* — Target (case) splicing matrix to compare against the pooled normal.  
-  - Tab-delimited; rows = exons, columns = samples; values = PSI \[0–1\].  
-  - Expected header example:
-    ```
-    AC  GeneName  chr  strand  exonStart  exonEnd  upstreamEE  downstreamES  sample1  sample2  ...
-    ```
-- **Normal/background matrix** — Provide **one** of:
-  - **`tissue`** — IRIS/GTEx tissue name to auto-download the background matrix (e.g., `Brain`, `AdiposeTissue`, …).  
-    Optional: **`tissue_download_root`** to control where the `GTEx_<Tissue>/splicing_matrix/` folder is created.
-  - **`normal_path`** — Path to a pre-downloaded normal splicing matrix (same exon schema; PSI values).
-
-> You must supply **either** `tissue` **or** `normal_path`. If both are given, `normal_path` is used.
 
 **Parameters:**
 - **`compare_file`** *(str, required)* — Path to the target splicing matrix to be compared.
 - **`out_psi_dir`** *(str, required)* — Output directory for per-sample Splitpea files (`{sample}-psi.txt`). Will be created if missing.
-- `tissue` *(str)* — IRIS/GTEx tissue name to auto-download the normal matrix.  
+- `background` *(str)* — IRIS/GTEx tissue name to auto-download the normal matrix.  
     **Must be one of:**
     `AdiposeTissue`, `AdrenalGland`, `Bladder`, `Blood`, `BloodVessel`, `Brain`, `Breast`, `CervixUteri`, `Colon`, `Esophagus`, `FallopianTube`, `Heart`, `Kidney`, `Liver`, `Lung`, `Muscle`, `Nerve`, `Ovary`, `Pancreas`, `Pituitary`, `Prostate`, `SalivaryGland`, `Skin`, `SmallIntestine`, `Spleen`, `Stomach`, `Testis`, `Thyroid`, `Uterus`, `Vagina`. 
-- **`tissue_download_root`** *(str, optional)* — Root directory for the IRIS download cache (creates `GTEx_<Tissue>/splicing_matrix/` under this path).
-- **`normal_path`** *(str, optional)* — Path to an existing normal/background splicing matrix file; bypasses download.
+- **`background_download_root`** *(str, optional)* — Root directory for the IRIS download cache (creates `GTEx_<Tissue>/splicing_matrix/` under this path).
+- **`background_path`** *(str, optional)* — Path to an existing normal/background splicing matrix file; bypasses download.
+
+> You must supply **either** `background` **or** `background_path`. If both are given, `background_path` is used.
 
 **Outputs (written to `out_psi_dir`):**
 - **`{sample}-psi.txt`** files (one per target sample), each a Splitpea (sample-specific) format table.
+
+---
+
+### `get_consensus_network`
+
+Build consensus loss and gain summary networks from a directory of sample networks (`*.pickle` from `splitpea.run`). Chaos edges are excluded; edge weights and counts are accumulated across samples.
+
+Example (Python):
+
+```python
+cons_neg, cons_pos = splitpea.get_consensus_network(
+    net_dir="output"
+)
+```
+
+Parameters: 
+- **`net_dir`** *(str, required)* — Directory containing sample .pickle graphs.
+
+**Outputs:**
+- `(cons_neg, cons_pos)` — two NetworkX graphs:
+  - **`cons_neg`**: edges with `weight <= 0`, attributes `weight` (sum) and `num_neg` (count).
+  - **`cons_pos`**: edges with `weight > 0`, attributes `weight` (sum) and `num_pos` (count).
+  - Both graphs have `graph['num_graphs']` = number of sample graphs combined.
+- **Files written:**
+  - `consensus_network_neg.pickle`
+  - `consensus_network_pos.pickle` 
+
 
 ---
 

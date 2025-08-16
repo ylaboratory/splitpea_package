@@ -170,12 +170,12 @@ def preprocess_pooled(
     compare_file: str,
     out_psi_dir: str,
     *,
-    tissue: Optional[str] = None,
-    tissue_download_root: Optional[str] = None,
-    normal_path: Optional[str] = None
+    background: Optional[str] = None,
+    background_download_root: Optional[str] = None,
+    background_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Either download a GTEx splicing matrix for `tissue` or use your own `normal_path`,
+    Either download a GTEx splicing matrix for `tissue` or use your own `background_path`,
     then combine spliced exons and compute delta PSI.
 
     Args:
@@ -185,10 +185,10 @@ def preprocess_pooled(
         tissue:         (optional) Tissue name from IRIS that will be dowloaded. 
                         Y. Pan, J.W. Phillips, B.D. Zhang, M. Noguchi, E. Kutschera, J. McLaughlin, P.A. Nesterenko, Z. Mao, N.J. Bangayan, R. Wang, W. Tran, H.T. Yang, Y. Wang, Y. Xu, M.B. Obusan, D. Cheng, A.H. Lee, K.E. Kadash-Edmondson, A. Champhekar, C. Puig-Saus, A. Ribas, R.M. Prins, C.S. Seet, G.M. Crooks, O.N. Witte, & Y. Xing, IRIS: Discovery of cancer immunotherapy targets arising from pre-mRNA alternative splicing, Proc. Natl. Acad. Sci. U.S.A. 120 (21) e2221116120, https://doi.org/10.1073/pnas.2221116120 (2023).
 
-        tissue_download_root:  (required if `tissue` is set) Root directory under which to
+        background_download_root:  (required if `tissue` is set) Root directory under which to
                         create GTEx_<Tissue>/splicing_matrix/.
 
-        normal_path:    (optional) Path to a pre-downloaded normal splicing matrix file.
+        background_path:    (optional) Path to a pre-downloaded background splicing matrix file.
     
     e.g:
         preprocess_pooled(
@@ -198,14 +198,14 @@ def preprocess_pooled(
             psi_dir="/UCS_uterus"
         )
     """
-    if bool(tissue) == bool(normal_path):
-        raise ValueError("You must provide exactly one of `tissue` or `normal_path`.")
+    if bool(background) == bool(background_path):
+        raise ValueError("You must provide exactly one of `background` or `background_path`.")
     
-    if normal_path:
-        if not os.path.isfile(normal_path):
-            raise FileNotFoundError(f"normal_path not found: {normal_path}")
-        normal_file = normal_path
-        work_dir    = os.path.dirname(normal_path)
+    if background_path:
+        if not os.path.isfile(background_path):
+            raise FileNotFoundError(f"background_path not found: {background_path}")
+        background_file = background_path
+        work_dir    = os.path.dirname(background_path)
 
     else:
         _ALLOWED_TISSUES = [
@@ -221,15 +221,15 @@ def preprocess_pooled(
             for t in _ALLOWED_TISSUES
         }
 
-        slug = tissue.lower().replace(" ", "").replace("_", "")
+        slug = background.lower().replace(" ", "").replace("_", "")
         if slug not in slug_map:
             raise ValueError(
-                f"Unknown tissue '{tissue}'. Valid choices are: {', '.join(_ALLOWED_TISSUES)}"
+                f"Unknown tissue '{background}'. Valid choices are: {', '.join(_ALLOWED_TISSUES)}"
             )
         suffix = slug_map[slug]
 
-        if not tissue_download_root:
-            raise ValueError("`tissue_download_root` must be set when using `tissue`.")
+        if not background_download_root:
+            raise ValueError("`background_download_root` must be set when using bundled `background`.")
 
         remote_base = (
             "https://xinglabtrackhub.research.chop.edu"
@@ -238,16 +238,16 @@ def preprocess_pooled(
         fname       = f"splicing_matrix.SE.cov10.GTEx_{suffix}.txt"
         url         = f"{remote_base}/GTEx_{suffix}/splicing_matrix/{fname}"
 
-        work_dir    = os.path.join(tissue_download_root, f"GTEx_{suffix}", "splicing_matrix")
+        work_dir    = os.path.join(background_download_root, f"GTEx_{suffix}", "splicing_matrix")
         os.makedirs(work_dir, exist_ok=True)
-        normal_file = os.path.join(work_dir, fname)
+        background_file = os.path.join(work_dir, fname)
 
-        if not os.path.exists(normal_file):
-            print(f"Downloading {url} to {normal_file}")
+        if not os.path.exists(background_file):
+            print(f"Downloading {url} to {background_file}")
             print("Y. Pan, J.W. Phillips, B.D. Zhang, M. Noguchi, E. Kutschera, J. McLaughlin, P.A. Nesterenko, Z. Mao, N.J. Bangayan, R. Wang, W. Tran, H.T. Yang, Y. Wang, Y. Xu, M.B. Obusan, D. Cheng, A.H. Lee, K.E. Kadash-Edmondson, A. Champhekar, C. Puig-Saus, A. Ribas, R.M. Prins, C.S. Seet, G.M. Crooks, O.N. Witte, & Y. Xing, IRIS: Discovery of cancer immunotherapy targets arising from pre-mRNA alternative splicing, Proc. Natl. Acad. Sci. U.S.A. 120 (21) e2221116120, https://doi.org/10.1073/pnas.2221116120 (2023).")
             resp = requests.get(url, stream=True)
             resp.raise_for_status()
-            with open(normal_file, "wb") as wf:
+            with open(background_file, "wb") as wf:
                 for chunk in resp.iter_content(chunk_size=8192):
                     wf.write(chunk)
 
@@ -261,7 +261,7 @@ def preprocess_pooled(
     print("Starting delta PSI calculation...")
     delta = calculate_delta_psi(
         combined_file,  
-        normal_file,    
+        background_file,    
         compare_file,
         out_psi_dir
     )

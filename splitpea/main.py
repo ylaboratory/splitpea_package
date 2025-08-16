@@ -28,6 +28,7 @@ from .core import tb_query
 from .core import calculate_edges
 from.core import deduce_final_edge_weights
 from .preprocess_pooled import calculate_delta_psi, combine_spliced_exon, preprocess_pooled
+from .get_consensus_network import get_consensus_network
 
 import importlib_resources as pkg_resources
 from .src import reference
@@ -563,15 +564,15 @@ def main():
 
     delta_p = subparsers.add_parser(
         "calculate_delta_psi",
-        help="Calculate delta PSI values and p-values for normal vs compare exon comparisons"
+        help="Calculate delta PSI values and p-values for background vs compare exon comparisons"
     )
     delta_p.add_argument(
         "sum_bg_file", type=str,
-        help="Path to the summarized normal background file"
+        help="Path to the summarized background background file"
     )
     delta_p.add_argument(
         "bg_file", type=str,
-        help="Path to the raw normal spliced exon file"
+        help="Path to the raw background spliced exon file"
     )
     delta_p.add_argument(
         "target_file", type=str,
@@ -593,7 +594,7 @@ def main():
 
     pooled_p = subparsers.add_parser(
         "preprocess_pooled",
-        help="Download or use existing normal psi files, combine exons, then calculate delta PSI"
+        help="Download or use existing background psi files, combine exons, then calculate delta PSI"
     )
     pooled_p.add_argument(
         "compare_file", type=str,
@@ -604,18 +605,26 @@ def main():
         help="Output directory to write all per sample PSI results"
     )
     pooled_p.add_argument(
-        "--tissue", type=str, default=None,
-        help="Tissue name from IRIS to download a normal splicing matrix (one of AdiposeTissue, Brain, …). Must either provide tissue or own splicing matrix (normal_path)"
+        "--background", type=str, default=None,
+        help="Tissue name from IRIS to download a background splicing matrix (one of AdiposeTissue, Brain, …). Must either provide tissue or own splicing matrix (background_path)"
     )
     pooled_p.add_argument(
-        "--tissue_download_root", type=str, default=None,
+        "--background_download_root", type=str, default=None,
         help="Root directory under which to create GTEx_<Tissue>/splicing_matrix/"
     )
     pooled_p.add_argument(
-        "--normal_path", type=str, default=None,
-        help="Optional path to a pre-downloaded normal splicing matrix file. Must either provide normal_path or tissue arg (to auto download splicing matrix from IRIS)"
+        "--background_path", type=str, default=None,
+        help="Optional path to a pre-downloaded background splicing matrix file. Must either provide background_path or tissue arg (to auto download splicing matrix from IRIS)"
     )
-
+    
+    consensus_p = subparsers.add_parser(
+        "get_consensus_network",
+        help="Get one summary network from a directory/folder of rewired Splitpea networks"
+    )
+    consensus_p.add_argument(
+        "net_dir", type=str,
+        help="Path to your directory of rewired networks"
+    )
 
     args = parser.parse_args()
 
@@ -682,10 +691,13 @@ def main():
         preprocess_pooled(
             compare_file=args.compare_file,
             out_psi_dir=args.out_psi_dir,
-            tissue=args.tissue,
-            tissue_download_root=args.tissue_download_root,
-            normal_path=args.normal_path
+            background=args.background,
+            background_download_root=args.background_download_root,
+            background_path=args.background_path
         )
+    
+    elif args.command == "get_consensus_network":
+        get_consensus_network(net_dir=args.net_dir)
 
 if __name__ == '__main__':
     main()

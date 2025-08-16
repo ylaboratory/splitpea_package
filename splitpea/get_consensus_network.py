@@ -67,4 +67,5 @@ def get_consensus_network(net_dir):
 
     with open("consensus_network_pos.pickle", 'wb') as out:
         pickle.dump(c_consensus_pos, out)    
-        
+    
+    return c_consensus_neg, c_consensus_pos
