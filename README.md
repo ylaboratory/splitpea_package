@@ -289,8 +289,8 @@ splitpea.preprocess_pooled(
 - `background` *(str)* — IRIS/GTEx tissue name to auto-download the normal matrix.  
     **Must be one of:**
     `AdiposeTissue`, `AdrenalGland`, `Bladder`, `Blood`, `BloodVessel`, `Brain`, `Breast`, `CervixUteri`, `Colon`, `Esophagus`, `FallopianTube`, `Heart`, `Kidney`, `Liver`, `Lung`, `Muscle`, `Nerve`, `Ovary`, `Pancreas`, `Pituitary`, `Prostate`, `SalivaryGland`, `Skin`, `SmallIntestine`, `Spleen`, `Stomach`, `Testis`, `Thyroid`, `Uterus`, `Vagina`. 
-- **`background_download_root`** *(str, optional)* — Root directory for the IRIS download cache (creates `GTEx_<Tissue>/splicing_matrix/` under this path).
-- **`background_path`** *(str, optional)* — Path to an existing normal/background splicing matrix file; bypasses download.
+- **`background_download_root`** *(str)* — Root directory for the IRIS download cache (creates `GTEx_<Tissue>/splicing_matrix/` under this path).
+- **`background_path`** *(str)* — Path to an existing normal/background splicing matrix file; bypasses download.
 
 > You must supply **either** `background` **or** `background_path`. If both are given, `background_path` is used.
 
