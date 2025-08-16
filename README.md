@@ -291,11 +291,11 @@ splitpea.preprocess_pooled(
     AC  GeneName  chr  strand  exonStart  exonEnd  upstreamEE  downstreamES  sample1  sample2  ...
     ```
 - **Normal/background matrix** — Provide **one** of:
-  - **`tibackgroundsue`** — IRIS/GTEx tissue name to auto-download the background matrix (e.g., `Brain`, `AdiposeTissue`, …).  
+  - **`background_`** — IRIS/GTEx tissue name to auto-download the background matrix (e.g., `Brain`, `AdiposeTissue`, …).  
     Optional: **`tissue_download_root`** to control where the `GTEx_<Tissue>/splicing_matrix/` folder is created.
   - **`background_path`** — Path to a pre-downloaded normal splicing matrix (same exon schema; PSI values).
 
-> You must supply **either** `tissue` **or** `normal_path`. If both are given, `normal_path` is used.
+> You must supply **either** `background_` **or** `background__path`. 
 
 **Parameters:**
 - **`compare_file`** *(str, required)* — Path to the target splicing matrix to be compared.
