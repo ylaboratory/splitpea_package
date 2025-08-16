@@ -283,16 +283,28 @@ splitpea.preprocess_pooled(
 )
 ```
 
+**Inputs:**
+- **`compare_file`** *(required)* — Target (case) splicing matrix to compare against the pooled normal.  
+  - Tab-delimited; rows = exons, columns = samples; values = PSI \[0–1\].  
+  - Expected header example:
+    ```
+    AC  GeneName  chr  strand  exonStart  exonEnd  upstreamEE  downstreamES  sample1  sample2  ...
+    ```
+- **Normal/background matrix** — Provide **one** of:
+  - **`tibackgroundsue`** — IRIS/GTEx tissue name to auto-download the background matrix (e.g., `Brain`, `AdiposeTissue`, …).  
+    Optional: **`tissue_download_root`** to control where the `GTEx_<Tissue>/splicing_matrix/` folder is created.
+  - **`background_path`** — Path to a pre-downloaded normal splicing matrix (same exon schema; PSI values).
+
+> You must supply **either** `tissue` **or** `normal_path`. If both are given, `normal_path` is used.
+
 **Parameters:**
 - **`compare_file`** *(str, required)* — Path to the target splicing matrix to be compared.
 - **`out_psi_dir`** *(str, required)* — Output directory for per-sample Splitpea files (`{sample}-psi.txt`). Will be created if missing.
-- `background` *(str)* — IRIS/GTEx tissue name to auto-download the normal matrix.  
+- **`background`** *(str)* — IRIS/GTEx tissue name to auto-download the normal matrix.  
     **Must be one of:**
     `AdiposeTissue`, `AdrenalGland`, `Bladder`, `Blood`, `BloodVessel`, `Brain`, `Breast`, `CervixUteri`, `Colon`, `Esophagus`, `FallopianTube`, `Heart`, `Kidney`, `Liver`, `Lung`, `Muscle`, `Nerve`, `Ovary`, `Pancreas`, `Pituitary`, `Prostate`, `SalivaryGland`, `Skin`, `SmallIntestine`, `Spleen`, `Stomach`, `Testis`, `Thyroid`, `Uterus`, `Vagina`. 
 - **`background_download_root`** *(str)* — Root directory for the IRIS download cache (creates `GTEx_<Tissue>/splicing_matrix/` under this path).
 - **`background_path`** *(str)* — Path to an existing normal/background splicing matrix file; bypasses download.
-
-> You must supply **either** `background` **or** `background_path`. If both are given, `background_path` is used.
 
 **Outputs (written to `out_psi_dir`):**
 - **`{sample}-psi.txt`** files (one per target sample), each a Splitpea (sample-specific) format table.
