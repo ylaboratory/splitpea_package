@@ -88,7 +88,7 @@ Main subcommands:
 - **`plot`** — Visualize a saved network
 - **`stats`** — Compute edge/gene statistics
 - **`preprocess_pooled`** — Generate the differential exon table for sample-specific mode
-
+- **`get_consensus_network`**- Generate summary consensus networks from a directory of rewired networks
 
 ### Command line
 
