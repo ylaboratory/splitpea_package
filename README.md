@@ -6,7 +6,7 @@ Original repository: [https://github.com/ylaboratory/splitpea](https://github.co
 Repository for this package's code: [https://github.com/ylaboratory/splitpea_package](https://github.com/ylaboratory/splitpea_package)\
 This pip package is an extended version with easier installation and additional functions.
 
-Splitpea quantifies rewiring in protein-protein interaction (PPI) networks driven by alternative splicing events. It integrates differential exon usage (PSI values) with domain-domain interactions (DDIs) and PPIs to generate sample or condition specific networks.
+Splitpea quantifies rewiring in protein-protein interaction (PPI) networks driven by alternative splicing events. It integrates differential exon usage (PSI values) with domain-domain interactions (DDIs) and PPIs to generate condition or sample specific networks.
 
 ## Installation
 
@@ -81,8 +81,8 @@ Functions that depend on `tabix` will raise an error if `tabix` is not found.
 
 ## Examples/Tutorials: 
 
-- **Condition-specific mode (SUPPA2 / rMATS):** https://colab.research.google.com/drive/1tGua5zQYXhKEknvtRcIJ0cboFUrYKnWc?usp=sharing
 - **Sample-specific mode:** https://colab.research.google.com/drive/1ktDhV5QSEm0em5R_Da9JhN1PGqMzrIsY?usp=sharing
+- **Condition-specific mode (SUPPA2 / rMATS):** https://colab.research.google.com/drive/1tGua5zQYXhKEknvtRcIJ0cboFUrYKnWc?usp=sharing
 
 ---
 
