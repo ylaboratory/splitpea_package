@@ -79,10 +79,10 @@ Functions that depend on `tabix` will raise an error if `tabix` is not found.
 
 ---
 
-## Examples: 
+## Examples/Tutorials: 
 
-- **Condition-specific mode (SUPPA2 / rMATS)** — https://colab.research.google.com/drive/1tGua5zQYXhKEknvtRcIJ0cboFUrYKnWc?usp=sharing
-- **Sample-specific mode** — https://colab.research.google.com/drive/1ktDhV5QSEm0em5R_Da9JhN1PGqMzrIsY?usp=sharing
+- **Condition-specific mode (SUPPA2 / rMATS):** https://colab.research.google.com/drive/1tGua5zQYXhKEknvtRcIJ0cboFUrYKnWc?usp=sharing
+- **Sample-specific mode:** https://colab.research.google.com/drive/1ktDhV5QSEm0em5R_Da9JhN1PGqMzrIsY?usp=sharing
 
 ---
 
