@@ -18,21 +18,21 @@ import logging
 # ddif = base_dir + "/reference/ddi_0.5.dat"
 # entrezpfamf = base_dir + "/reference/human_entrez_pfam.txt"
 
-logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
-                    datefmt="%m-%d-%Y %I:%M:%S %p",
-                    level=logging.ERROR)
-logger = logging.getLogger('diff_exon')
+# logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
+#                     datefmt="%m-%d-%Y %I:%M:%S %p",
+#                     level=logging.ERROR)
+# # logger = logging.get# logger('diff_exon')
 
 
 def get_background(ppif, ddif, entrezpfamf):
-    logger.info("Reading in network files for background PPI...")
+    # logger.info("Reading in network files for background PPI...")
     all_ddis = nx.read_weighted_edgelist(ddif)
     all_ppis = nx.read_weighted_edgelist(ppif) 
     entrez_pfams = nx.bipartite.read_edgelist(entrezpfamf)
-    logger.info("Full PPI info...")
-    logger.info(all_ppis)
+    # logger.info("Full PPI info...")
+    # logger.info(all_ppis)
 
-    logger.info("Calculating background network...")    
+    # logger.info("Calculating background network...")    
     # constructing graph w/ ppi nodes incident on genes w/ a ddi (w/o exon info)
     g = nx.Graph()
 
@@ -56,9 +56,9 @@ def get_background(ppif, ddif, entrezpfamf):
                 
                 g.edges[gi,gj]['ppi_ddis'][gi][pfi] |= ddi_overlap
 
-    logger.info( "PPI with DDI support (i.e., background)...")
-    logger.info(g)
-    logger.info("Outputting...")
+    # logger.info( "PPI with DDI support (i.e., background)...")
+    # logger.info(g)
+    # logger.info("Outputting...")
 
     with open("human_ppi_ddi_bg.pickle", 'wb') as out:
         pickle.dump(g, out)
