@@ -21,7 +21,7 @@ def process_suppa2(psivec_path, dpsi_path, map_path, splicing_events_filter=None
     Returns:
       final_df (pd.DataFrame): DataFrame with metadata columns and computed columns:
          - ensembl.id, symbol, chr, strand, exon.start, exon.end
-         - psi columns (averaged per event group; if exactly 2 groups, they are renamed to psi.gtex and psi.tcga)
+         - psi columns (averaged per event group)
          - delta.psi and pval (from the dPSI file)
     """
     

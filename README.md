@@ -67,12 +67,12 @@ Functions that depend on `tabix` will raise an error if `tabix` is not found.
    - Input: a **differential exon table** for a single sample.  
    - Tab-delimited header:
      ```
-     ensembl.id  symbol  chr  strand  exon.start  exon.end  psi.gtex  psi.tcga  delta.psi  pval
+     ensembl.id  symbol  chr  strand  exon.start  exon.end  psi.background  psi.sample  delta.psi  pval
      ```
-   - Can be generated via `preprocess_pooled` (see below) from two splicing matrices: one for background samples and another for samples to compare individually against it.
+   - Can be generated via `preprocess_pooled` (see below) from two splicing matrices: one for background samples and another for samples to compare individually against it. Supports SUPPA2 (.psi) and rMATS formats (SE.MATS.JC.txt or SE.MATS.JCEC.txt).
 
 2. **Condition-specific mode** (`differential_format=suppa2` or `rmats`)  
-   - **SUPPA2**: provide both `.psivec` and `.dpsi` (order agnostic)  
+   - **SUPPA2**: provide both `.psivec` and `.dpsi` (order agnostic)
    - **rMATS**: use `SE.MATS.JC.txt` or `SE.MATS.JCEC.txt`
 
 > Currently, only **skipped exon (SE)** events are supported.
@@ -137,7 +137,7 @@ G = splitpea.run("SE.MATS.JCEC.txt", "out/condB",
 **Required:**
 - **`in_file`** —  
   - `sample_specific`: one file path  
-  - `suppa2`: two file paths (`.psivec` and `.dpsi`)  
+  - `suppa2`: two file paths (`.psivec` and `.dpsi`, typically outputed from diffSplice)  
   - `rmats`: one JC or JCEC file path
 - **`out_file_prefix`** — Prefix for all output files (directory + base name)
 
@@ -261,6 +261,7 @@ splitpea.stats(
 
 Helper function that builds sample-specific Splitpea inputs by comparing each target sample to a*pooled normal background.  
 It either downloads a normal splicing matrix from IRIS (GTEx) for a chosen tissue or a user can provide their own normal matrix.
+You can provide either a .psi file from SUPPA2 (using psiPerEvent for local alternative splicing events) or a folder containing multiple rMATS output files (SE.MATS.JC.txt or SE.MATS.JCEC.txt). The function will automatically process these inputs. For rMATS, make sure to rename each file in the folder to match your sample names.
 
 What the function does: 
 1. Load a target splicing matrix (`compare_file`) with exon rows and sample columns (PSI values).
@@ -285,33 +286,36 @@ splitpea.preprocess_pooled(
 # Option B: use a local normal matrix
 splitpea.preprocess_pooled(
     compare_file="compare.txt",
-    background_path="/path/to/GTEx_Brain/splicing_matrix.tsv",
+    background_path="/path/to/GTEx_Brain/splicing_matrix.txt",
     out_psi_dir="out_psi"
 )
 ```
 
 **Inputs:**
 - **`compare_file`** *(required)* — Target (case) splicing matrix to compare against the pooled normal.  
-  - Tab-delimited; rows = exons, columns = samples; values = PSI \[0–1\].  
-  - Expected header example:
-    ```
-    AC  GeneName  chr  strand  exonStart  exonEnd  upstreamEE  downstreamES  sample1  sample2  ...
-    ```
+  - Can be:  
+    - a `.psi` file from SUPPA2 (psiPerEvent),  
+    - a directory of rMATS files (`SE.MATS.JC.txt` or `SE.MATS.JCEC.txt`), with each file renamed to match its sample, or  
+    - a `.txt` file in tab-delimited matrix format (rows = exons, columns = samples, values = PSI [0–1]).  
+      - Expected header example:  
+        ```
+        GeneID  geneSymbol  chr  strand  exonStart  exonEnd  upstreamEE  downstreamES  sample1  sample2  ...
+        ```
 - **Normal/background matrix** — Provide **one** of:
   - **`background_`** — IRIS/GTEx tissue name to auto-download the background matrix (e.g., `Brain`, `AdiposeTissue`, …).  
     Optional: **`tissue_download_root`** to control where the `GTEx_<Tissue>/splicing_matrix/` folder is created.
-  - **`background_path`** — Path to a pre-downloaded normal splicing matrix (same exon schema; PSI values).
+  - **`background_path`** — Path to a pre-downloaded normal splicing data. Same accepted formats/data files as `compare_file`.
 
 > You must supply **either** `background_` **or** `background__path`. 
 
 **Parameters:**
-- **`compare_file`** *(str, required)* — Path to the target splicing matrix to be compared.
+- **`compare_file`** *(str, required)* — Path to the target splicing data to be compared.
 - **`out_psi_dir`** *(str, required)* — Output directory for per-sample Splitpea files (`{sample}-psi.txt`). Will be created if missing.
-- **`background`** *(str)* — IRIS/GTEx tissue name to auto-download the normal matrix.  
+- **`background`** *(str)* — IRIS/GTEx tissue name to auto-download the normal data.  
     **Must be one of:**
     `AdiposeTissue`, `AdrenalGland`, `Bladder`, `Blood`, `BloodVessel`, `Brain`, `Breast`, `CervixUteri`, `Colon`, `Esophagus`, `FallopianTube`, `Heart`, `Kidney`, `Liver`, `Lung`, `Muscle`, `Nerve`, `Ovary`, `Pancreas`, `Pituitary`, `Prostate`, `SalivaryGland`, `Skin`, `SmallIntestine`, `Spleen`, `Stomach`, `Testis`, `Thyroid`, `Uterus`, `Vagina`. 
 - **`background_download_root`** *(str)* — Root directory for the IRIS download cache (creates `GTEx_<Tissue>/splicing_matrix/` under this path).
-- **`background_path`** *(str)* — Path to an existing normal/background splicing matrix file; bypasses download.
+- **`background_path`** *(str)* — Path to an existing normal/background splicing data file; bypasses download.
 
 **Outputs (written to `out_psi_dir`):**
 - **`{sample}-psi.txt`** files (one per target sample), each a Splitpea (sample-specific) format table.
