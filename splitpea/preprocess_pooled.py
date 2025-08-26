@@ -174,7 +174,7 @@ def combine_spliced_exon(in_dir):
 def read_sample_specific(
     in_file: str,
     map_path: str = None,
-    species: str = "Human",
+    species: str = "human",
     gtf: str = None,
 ) -> pd.DataFrame:
     """
@@ -450,7 +450,7 @@ def preprocess_pooled(
     background_download_root: Optional[str] = None,
     background_path: Optional[str] = None,
     map_path: Optional[str] = None,
-    species: str = "Human",
+    species: str = "human",
     gtf: Optional[str] = None,
 ) -> Dict[str, Any]:
     """

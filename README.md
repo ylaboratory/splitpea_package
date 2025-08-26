@@ -316,6 +316,9 @@ splitpea.preprocess_pooled(
     `AdiposeTissue`, `AdrenalGland`, `Bladder`, `Blood`, `BloodVessel`, `Brain`, `Breast`, `CervixUteri`, `Colon`, `Esophagus`, `FallopianTube`, `Heart`, `Kidney`, `Liver`, `Lung`, `Muscle`, `Nerve`, `Ovary`, `Pancreas`, `Pituitary`, `Prostate`, `SalivaryGland`, `Skin`, `SmallIntestine`, `Spleen`, `Stomach`, `Testis`, `Thyroid`, `Uterus`, `Vagina`. 
 - **`background_download_root`** *(str)* — Root directory for the IRIS download cache (creates `GTEx_<Tissue>/splicing_matrix/` under this path).
 - **`background_path`** *(str)* — Path to an existing normal/background splicing data file; bypasses download.
+- **`map_path`** *(str)* — Gene ID mapping: symbol/entrez/ensembl/uniprot
+- **`species`** *(str)* — Species identifier (e.g. `human`, `mouse`); determines which default map path to use.   
+- **`gtf`** *(str)* — Path to the reference GTF annotation file for more accurate exon start and end locations for SUPPA2 .psi inputs; if omitted, coordinates are approximated from splice sites (upstreamEE+1, downstreamES–1). 
 
 **Outputs (written to `out_psi_dir`):**
 - **`{sample}-psi.txt`** files (one per target sample), each a Splitpea (sample-specific) format table.

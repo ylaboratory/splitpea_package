@@ -616,6 +616,18 @@ def main():
         "--background_path", type=str, default=None,
         help="Optional path to a pre-downloaded background splicing matrix file. Must either provide background_path or tissue arg (to auto download splicing matrix from IRIS)"
     )
+    pooled_p.add_argument(
+        "--map_path", type=str, default=None,
+        help="Path to text file that maps between gene ids, where it has tab delineated columns: symbol, entrez, ensembl, uniprot. The package has default files for mouse and human."
+    )
+    pooled_p.add_argument(
+        "--species", type=str, default="human",
+        help="Species identifier to pick the correct reference files (default: 'human')"
+    )
+    pooled_p.add_argument(
+        "--gtf", type=str, default=None,
+        help="Path to GTF file to more accurate exon start and end coordinates."
+    )
     
     consensus_p = subparsers.add_parser(
         "get_consensus_network",
@@ -693,7 +705,10 @@ def main():
             out_psi_dir=args.out_psi_dir,
             background=args.background,
             background_download_root=args.background_download_root,
-            background_path=args.background_path
+            background_path=args.background_path,
+            map_path=args.map_path,
+            species=args.species,
+            gtf=args.gtf
         )
     
     elif args.command == "get_consensus_network":
