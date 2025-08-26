@@ -261,7 +261,7 @@ splitpea.stats(
 
 Helper function that builds sample-specific Splitpea inputs by comparing each target sample to a pooled normal background.  
 It either downloads a normal splicing matrix from IRIS (GTEx) for a chosen tissue or a user can provide their own normal matrix.
-You can provide either a .psi file from SUPPA2 (typically and output of psiPerEvent for local alternative splicing events) or a folder containing multiple rMATS output files (SE.MATS.JC.txt or SE.MATS.JCEC.txt). The function will automatically process these inputs. For rMATS, make sure to rename each file in the folder to match your sample names.
+You can provide either a .psi file from SUPPA2 (typically an output of psiPerEvent for local alternative splicing events) or a folder containing multiple rMATS output files (SE.MATS.JC.txt or SE.MATS.JCEC.txt). The function will automatically process these inputs. For rMATS, make sure to rename each file in the folder to match your sample names.
 
 What the function does: 
 1. Load a target splicing matrix (`compare_file`) with exon rows and sample columns (PSI values).
