@@ -622,11 +622,11 @@ def main():
     )
     pooled_p.add_argument(
         "--species", type=str, default="human",
-        help="Species identifier to pick the correct reference files (default: 'human')"
+        help="Species identifier to pick the correct default mapping files (default: 'human')"
     )
     pooled_p.add_argument(
         "--gtf", type=str, default=None,
-        help="Path to GTF file to more accurate exon start and end coordinates."
+        help="Path to GTF file for more accurate exon start and end coordinates for .psi SUPPA2 inputs."
     )
     
     consensus_p = subparsers.add_parser(
