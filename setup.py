@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="splitpea",
-    version="0.1.48",
+    version="0.1.54",
     author="Jeffrey Zhong",
     author_email="jz94@rice.edu",
     description="Splitpea: method for calculating network rewiring changes due to splicing",

@@ -82,6 +82,7 @@ Functions that depend on `tabix` will raise an error if `tabix` is not found.
 ## Examples/Tutorials: 
 
 - **Sample-specific mode:** https://colab.research.google.com/drive/1ktDhV5QSEm0em5R_Da9JhN1PGqMzrIsY?usp=sharing
+- **Sample-specific mode (rMATS):** https://colab.research.google.com/drive/18bn9BRt8XPj-oUWceocKJkIVSeabWwOG?usp=sharing
 - **Condition-specific mode (SUPPA2 / rMATS):** https://colab.research.google.com/drive/1tGua5zQYXhKEknvtRcIJ0cboFUrYKnWc?usp=sharing
 
 ---
@@ -261,7 +262,7 @@ splitpea.stats(
 
 Helper function that builds sample-specific Splitpea inputs by comparing each target sample to a pooled normal background.  
 It either downloads a normal splicing matrix from IRIS (GTEx) for a chosen tissue or a user can provide their own normal matrix.
-You can provide either a .psi file from SUPPA2 (typically an output of psiPerEvent for local alternative splicing events) or a folder containing multiple rMATS output files (SE.MATS.JC.txt or SE.MATS.JCEC.txt). The function will automatically process these inputs. For rMATS, make sure to rename each file in the folder to match your sample names.
+You can provide either a .txt file from rMATS output files (SE.MATS.JC.txt or SE.MATS.JCEC.txt) for a single sample or a folder containing multiple samples and rMATS output files (SE.MATS.JC.txt or SE.MATS.JCEC.txt). The function will automatically process these inputs. For rMATS, it may be helpful to rename each file in the folder to match your sample names.
 
 What the function does: 
 1. Load a target splicing matrix (`compare_file`) with exon rows and sample columns (PSI values).
@@ -294,8 +295,8 @@ splitpea.preprocess_pooled(
 **Inputs:**
 - **`compare_file`** *(required)* — Target (case) splicing matrix to compare against the pooled normal.  
   - Can be:  
-    - a `.psi` file from SUPPA2 (psiPerEvent),  
-    - a directory of rMATS files (`SE.MATS.JC.txt` or `SE.MATS.JCEC.txt`), with each file renamed to match its sample, or  
+    - a `.txt` file from rMATS (`SE.MATS.JC.txt` or `SE.MATS.JCEC.txt` format)
+    - a directory of rMATS files (`SE.MATS.JC.txt` or `SE.MATS.JCEC.txt` format), with each file renamed to match its sample, or  
     - a `.txt` file in tab-delimited matrix format (rows = exons, columns = samples, values = PSI [0–1]).  
       - Expected header example:  
         ```
@@ -318,7 +319,9 @@ splitpea.preprocess_pooled(
 - **`background_path`** *(str)* — Path to an existing normal/background splicing data file; bypasses download.
 - **`map_path`** *(str)* — Gene ID mapping: symbol/entrez/ensembl/uniprot
 - **`species`** *(str)* — Species identifier (e.g. `human`, `mouse`); determines which default map path to use.   
-- **`gtf`** *(str)* — Path to the reference GTF annotation file for more accurate exon start and end locations for SUPPA2 .psi inputs; if omitted, coordinates are approximated from splice sites (upstreamEE+1, downstreamES–1). 
+- **`single_rMATS_compare`** *(bool, optional)* — If True, treat `compare_file` as a single rMATS file instead of a directory.  
+- **`single_rMATS_background`** *(bool, optional)* — If True, treat `background_path` as a single rMATS file instead of a directory.  
+- **`inclevel`** *(int, optional)* — Which inclusion-level field to use when parsing rMATS (1 or 2). Defaults to 1.  
 
 **Outputs (written to `out_psi_dir`):**
 - **`{sample}-psi.txt`** files (one per target sample), each a Splitpea (sample-specific) format table.
