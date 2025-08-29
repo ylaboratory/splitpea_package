@@ -625,8 +625,16 @@ def main():
         help="Species identifier to pick the correct default mapping files (default: 'human')"
     )
     pooled_p.add_argument(
-        "--gtf", type=str, default=None,
-        help="Path to GTF file for more accurate exon start and end coordinates for .psi SUPPA2 inputs."
+        "--single_rMATS_compare", type=bool, default=False,
+        help="If True, treat the compare file as a single rMATS file."
+    )
+    pooled_p.add_argument(
+        "--single_rMATS_background", type=bool, default=False,
+        help="If True, treat the background file as a single rMATS file."
+    )
+    pooled_p.add_argument(
+        "--inclevel", type=int, default=1,
+        help="Which rMATS inclusion-level field to use when parsing a single file; 1 or 2. Defaults to 1 if not specified."
     )
     
     consensus_p = subparsers.add_parser(
@@ -708,7 +716,9 @@ def main():
             background_path=args.background_path,
             map_path=args.map_path,
             species=args.species,
-            gtf=args.gtf
+            single_rMATS_compare=args.single_rMATS_compare,
+            single_rMATS_background=args.single_rMATS_background,
+            inclevel=args.inclevel
         )
     
     elif args.command == "get_consensus_network":

@@ -185,8 +185,8 @@ def read_sample_specific(
     - in_file: path to a directory of rMATS files, or (if single_rMATS=True) a single rMATS .txt file
     - map_path: optional Ensembl→symbol mapping TSV with columns [symbol, ensembl]
     - species: "human" or "mouse" (used if map_path not given)
-    - gtf: optional GTF file (not used here, kept for compatibility)
     - single_rMATS: if True, treat `in_file` as a single rMATS file instead of a directory
+    - inclevel: which rMATS inclusion-level field to use when parsing a single file; 1 or 2. Defaults to 1 if not specified.
 
     Outputs:
     - DataFrame columns:
@@ -329,7 +329,7 @@ def preprocess_pooled(
     Either download a GTEx splicing matrix for `tissue` or use your own `background_path`,
     then combine spliced exons and compute delta PSI.
 
-    Args:
+    Parameters:
         compare_file:   Path to your compare.txt output file. You can also pass in a single rMATS output txt file (SE.MAT.JC.txt or SE.MATS.JCEC.txt), or a folder with rMATS SE.MATS.JC.txt or SE.MATS.JCEC.txt files and the function will process them for you. For rMATS, please rename the files in the folder to the names of your samples.
         out_psi_dir:        Output directory containing PSI files that can be inputed to splitpea.
 
@@ -340,7 +340,7 @@ def preprocess_pooled(
                         create GTEx_<Tissue>/splicing_matrix/.
 
         background_path:    (optional) Path to a pre-downloaded background splicing matrix file. You can also pass in a .psi file or a folder with rMATS SE.MATS.JC.txt or SE.MATS.JCEC.txt files and the function will process them for you. For rMATS, please rename the files in the folder to the names of your samples. 
-        single_rMATS_compare: (optional) If True, treat the compare file as a single rMATS .
+        single_rMATS_compare: (optional) If True, treat the compare file as a single rMATS file.
         single_rMATS_background: (optional) If True, treat the background as a single rMATS file.
         inclevel: (optional) Which rMATS inclusion-level field to use when parsing a single file; 1 or 2. Defaults to 1 if not specified.
 
