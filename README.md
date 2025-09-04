@@ -41,7 +41,7 @@ Functions that depend on `tabix` will raise an error if `tabix` is not found.
 
 - Python >= 3.8
 - Packages:
-  - `numpy`, `networkx`, `intervaltree`, `ipykernel`, `matplotlib`, `plotnine`, `scikit-learn`, `adjustText`, `importlib_resources`
+  - `numpy`, `networkx`, `intervaltree`, `ipykernel`, `matplotlib`, `plotnine`, `scikit-learn`, `adjustText`, `importlib_resources`, `requests`
 
 
 ## Features

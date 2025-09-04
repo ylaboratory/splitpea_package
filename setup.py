@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="splitpea",
-    version="0.1.55",
+    version="0.1.57",
     author="Jeffrey Zhong",
     author_email="jz94@rice.edu",
     description="Splitpea: method for calculating network rewiring changes due to splicing",
@@ -31,7 +31,8 @@ setup(
         "plotnine",
         "scikit-learn",
         "adjustText",
-        "importlib_resources"
+        "importlib_resources",
+        "requests"
     ],
     include_package_data=True,
     package_data={"splitpea": ["src/*"]},

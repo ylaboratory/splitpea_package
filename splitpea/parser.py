@@ -80,7 +80,7 @@ def process_suppa2(psivec_path, dpsi_path, map_path, splicing_events_filter=None
 
     map_df = pd.read_csv(map_path, sep='\t', usecols=['symbol', 'ensembl'])
     mapping = dict(zip(map_df['ensembl'], map_df['symbol']))
-    merged_df['symbol'] = merged_df['ensembl.id'].map(mapping).fillna(np.nan)
+    merged_df['symbol'] = merged_df['ensembl.id'].map(mapping)
     
     all_cols = merged_df.columns.tolist()
     meta_cols_ = {

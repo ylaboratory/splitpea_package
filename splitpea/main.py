@@ -227,7 +227,7 @@ def run(in_file,
         plot_rewired_network(diff_splice_g, with_labels = True, pdf_path=out_file_prefix + "_network_plot.pdf")
     if gephi_tsv == True:
         logger.info("Outputing gexf for network...")
-        plot_rewired_network(diff_splice_g, with_labels = True, plot_matplot = False, gephi_path=out_file_prefix + '_gephi.csv')
+        plot_rewired_network(diff_splice_g, with_labels = True, plot_matplot = False, gephi_path=out_file_prefix + '_gephi.tsv')
     if cytoscape_gml == True:
         logger.info("Outputing gml for network...")
         plot_rewired_network(diff_splice_g, with_labels = True, plot_matplot = False, cytoscape_path=out_file_prefix + '_cyto.gml')
@@ -689,7 +689,7 @@ def main():
        stats(
             dat_file=args.dat_file,
             rewire_net=args.rewire_net,
-            out_file=args.out_file_prefix,
+            out_file_prefix=args.out_file_prefix,
             ppif=args.ppif,
             ddif=args.ddif,
             entrezpfamf=args.entrezpfamf,

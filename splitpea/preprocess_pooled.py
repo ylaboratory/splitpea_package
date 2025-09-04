@@ -27,33 +27,54 @@ def calculate_delta_psi(sum_bg_file, bg_file, target_file, outdir):
       [ensembl_gene_id, symbol, chr, strand, exon_start, exon_end,
        psi_background_samples, psi_compare_samples, delta_psi, pval]
     """
-    # Helper: empirical CDF generator
-    def get_ecdf(vals):
-        v = np.asarray(vals, dtype=float)
-        valid = ~np.isnan(v)
-        n = valid.sum()
-        min_valid = max(10, int(n * 0.1))
-        if n < min_valid:
-            return lambda x: np.nan
-        diffs = np.abs(v[valid][:, None] - v[valid][None, :])
-        i, j = np.tril_indices(n, k=-1)
-        subtracts = diffs[i, j]
-        if np.all(subtracts == 0):
-            return lambda x: np.nan
-        sorted_subs = np.sort(subtracts)
-        m = len(sorted_subs)
-        def ecdf(x):
-            # fraction of background diffs <= x
-            return np.searchsorted(sorted_subs, x, side='right') / m
-        return ecdf
-
-    # Ensure output directory exists
     os.makedirs(outdir, exist_ok=True)
-    
-    # Define grouping columns
+
     group_cols = ['ensembl_gene_id', 'symbol', 'chr', 'strand', 'exon_start', 'exon_end']
 
-    # 1) Load and preprocess background_samples summary (one PSI column)
+    def normalize_bg(df):
+        df = df.rename(columns={'exonStart': 'exonStart_0base'})
+        df = df.drop(columns=['upstreamEE', 'downstreamES'], errors='ignore')
+        df = df.groupby(['GeneID','geneSymbol','chr','strand','exonStart_0base','exonEnd'], as_index=False).mean()
+        df['chr'] = df['chr'].astype(str).str.replace('chr', '', regex=False)
+        df['strand'] = df['strand'].astype(str).map(lambda s: -1 if s == '-' else 1)
+        df = df.rename(columns={
+            'GeneID': 'ensembl_gene_id',
+            'geneSymbol': 'symbol',
+            'exonStart_0base': 'exon_start',
+            'exonEnd': 'exon_end'
+        })
+        return df
+
+    def normalize_cmp(df):
+        df = df.rename(columns={'GeneID': 'AC', 'geneSymbol': 'GeneName'})
+        df = df.drop(columns=['upstreamEE', 'downstreamES'], errors='ignore')
+        df = df.groupby(['AC','GeneName','chr','strand','exonStart','exonEnd'], as_index=False).mean()
+        df['chr'] = df['chr'].astype(str).str.replace('chr', '', regex=False)
+        df['strand'] = df['strand'].astype(str).map(lambda s: -1 if s == '-' else 1)
+        df = df.rename(columns={
+            'AC': 'ensembl_gene_id',
+            'GeneName': 'symbol',
+            'exonStart': 'exon_start',
+            'exonEnd': 'exon_end'
+        })
+        return df
+
+    def exon_key_tuple(row):
+        return (row['ensembl_gene_id'], row['symbol'], row['chr'],
+                int(row['strand']), int(row['exon_start']), int(row['exon_end']))
+
+    def count_pairs_leq_diff(v_sorted, x):
+        n = len(v_sorted)
+        if n < 2:
+            return 0
+        j = 0
+        total = 0
+        for i in range(n):
+            while j < n and v_sorted[j] - v_sorted[i] <= x:
+                j += 1
+            total += max(0, (j - i - 1))
+        return total
+
     sum_bg = pd.read_csv(sum_bg_file, sep='\t')
     sum_bg = sum_bg.groupby(group_cols, as_index=False).mean()
     psi_cols = [c for c in sum_bg.columns if c not in group_cols]
@@ -61,71 +82,71 @@ def calculate_delta_psi(sum_bg_file, bg_file, target_file, outdir):
         raise ValueError("Expected exactly one PSI column in summarized background file.")
     sum_bg = sum_bg.rename(columns={psi_cols[0]: 'psi_background_samples'})
 
-    # 2) Load and preprocess raw background_samples for ECDF
     bg_all = pd.read_csv(bg_file, sep='\t')
-    bg_all = bg_all.rename(columns={'exonStart':'exonStart_0base'})
-    bg_all = bg_all.drop(columns=['upstreamEE','downstreamES'], errors='ignore')
-    bg_all = bg_all.groupby(['GeneID','geneSymbol','chr','strand','exonStart_0base','exonEnd'], as_index=False).mean()
-    bg_all['chr'] = bg_all['chr'].astype(str).str.replace('chr','')
-    bg_all['strand'] = bg_all['strand'].astype(str).map(lambda s: -1 if s=='-' else 1)
-    bg_all = bg_all.rename(columns={
-        'GeneID':'ensembl_gene_id',
-        'geneSymbol':'symbol',
-        'exonStart_0base':'exon_start',
-        'exonEnd':'exon_end'
-    })
+    bg_all = normalize_bg(bg_all)
     sample_cols_bg = [c for c in bg_all.columns if c not in group_cols]
     bg_all = bg_all[group_cols + sample_cols_bg]
-    
-    # Precompute ECDF functions per exon
-    ecdf_funcs = [get_ecdf(row[sample_cols_bg].values) for _, row in bg_all.iterrows()]
-    ecdf_df = bg_all[group_cols].copy()
-    ecdf_df['ecdf_func'] = ecdf_funcs
 
-    # 3) Load and preprocess compare_samples data
-    compare_samples_all = pd.read_csv(target_file, sep='\t')
-    compare_samples_all = compare_samples_all.rename(columns={'GeneID':'AC','geneSymbol':'GeneName'})
-    compare_samples_all = compare_samples_all.drop(columns=['upstreamEE','downstreamES'], errors='ignore')
-    compare_samples_all = compare_samples_all.groupby(['AC','GeneName','chr','strand','exonStart','exonEnd'], as_index=False).mean()
-    compare_samples_all['chr'] = compare_samples_all['chr'].astype(str).str.replace('chr','')
-    compare_samples_all['strand'] = compare_samples_all['strand'].astype(str).map(lambda s: -1 if s=='-' else 1)
-    compare_samples_all = compare_samples_all.rename(columns={
-        'AC':'ensembl_gene_id',
-        'GeneName':'symbol',
-        'exonStart':'exon_start',
-        'exonEnd':'exon_end'
-    })
-    sample_cols_compare_samples = [c for c in compare_samples_all.columns if c not in group_cols]
-    compare_samples_all = compare_samples_all[group_cols + sample_cols_compare_samples]
+    bg_groups = {}
+    for _, row in bg_all.iterrows():
+        key = exon_key_tuple(row)
+        vals = pd.to_numeric(row[sample_cols_bg], errors='coerce').to_numpy(dtype=float)
+        vals = vals[~np.isnan(vals)]
+        n = len(vals)
+        min_valid = max(10, int(n * 0.1))
+        if n < min_valid:
+            continue
+        v_sorted = np.sort(vals)
+        bg_groups[key] = v_sorted
 
-    # 4) For each compare_samples sample: compute delta PSI and p-values
-    for sam in sample_cols_compare_samples:
-        print(f"Processing sample {sam}...")
-        tmp = compare_samples_all[group_cols + [sam]].copy()
+    compare = pd.read_csv(target_file, sep='\t')
+    compare = normalize_cmp(compare)
+    sample_cols_cmp = [c for c in compare.columns if c not in group_cols]
+    compare = compare[group_cols + sample_cols_cmp]
+
+    cols_out = group_cols + ['psi_background_samples', 'psi_compare_samples', 'delta_psi', 'pval']
+
+    for sam in sample_cols_cmp:
+        tmp = compare[group_cols + [sam]].copy()
         tmp = tmp.rename(columns={sam: 'psi_compare_samples'})
-        
-        # merge with background_samples summary
-        joint = pd.merge(sum_bg, tmp, on=group_cols, how='inner')
-        joint = joint.dropna(subset=['psi_background_samples','psi_compare_samples'])
+        joint = pd.merge(sum_bg, tmp, on=group_cols, how='inner', sort=False)
+        joint = joint.dropna(subset=['psi_background_samples', 'psi_compare_samples'])
+        joint = joint.reset_index(drop=True)
         joint['delta_psi'] = joint['psi_compare_samples'] - joint['psi_background_samples']
-        
-        # merge with ECDF functions
-        joint = pd.merge(joint, ecdf_df, on=group_cols, how='left')
         joint['abs_delta'] = np.abs(joint['delta_psi'])
-        
-        # evaluate CDF and compute p-value
-        joint['cdf_val'] = joint.apply(
-            lambda row: row['ecdf_func'](row['abs_delta']) if callable(row['ecdf_func']) else np.nan,
-            axis=1
-        )
-        joint['pval'] = 1 - joint['cdf_val']
-        
-        # keep only numeric columns; drop the function pointers
-        out_df = joint.drop(columns=['ecdf_func','abs_delta','cdf_val'])
-        
-        # write to TSV
+        joint['_exon_key'] = joint[group_cols].apply(tuple, axis=1)
+        pval_cache = {}
+        pvals = np.full(len(joint), np.nan, dtype=float)
+        for exon_key, idx_series in joint.groupby('_exon_key').groups.items():
+            idx = np.fromiter(idx_series, dtype=int)
+            v_sorted = bg_groups.get(exon_key, None)
+            if v_sorted is None or len(v_sorted) < 2 or v_sorted[-1] == v_sorted[0]:
+                continue
+            n = len(v_sorted)
+            m_pairs = n * (n - 1) // 2
+            if m_pairs == 0:
+                continue
+            xvals = np.asarray(sorted(joint['abs_delta'].iloc[idx].dropna().unique()))
+            if xvals.size == 0:
+                continue
+            cdf_map = {}
+            for x in xvals:
+                key2 = (exon_key, float(x))
+                if key2 in pval_cache:
+                    cdf = pval_cache[key2]
+                else:
+                    cnt = count_pairs_leq_diff(v_sorted, x)
+                    cdf = cnt / m_pairs
+                    pval_cache[key2] = cdf
+                cdf_map[x] = cdf
+            abs_deltas = joint['abs_delta'].iloc[idx].to_numpy()
+            pv = np.array([1.0 - cdf_map.get(x, np.nan) for x in abs_deltas], dtype=float)
+            pvals[idx] = pv
+        joint['pval'] = pvals
+        out_df = joint.drop(columns=['abs_delta', '_exon_key'])
         out_path = os.path.join(outdir, f"{sam}-psi.txt")
-        out_df.to_csv(out_path, sep='\t', index=False)
+        out_df[cols_out].to_csv(out_path, sep='\t', index=False)
+
 
 
 def combine_spliced_exon(in_dir):
