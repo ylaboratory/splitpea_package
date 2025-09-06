@@ -170,7 +170,7 @@ def parse_suppa2(psivec_path, dpsi_path, map_path, splicing_events_filter=["SE"]
     final_df = process_suppa2(psivec_path, dpsi_path, map_path, splicing_events_filter, species, verbose=verbose)
     final_df['strand'] = final_df['strand'].replace({'+': '1', '-': '-1'})
     
-    temp_dir = os.path.dirname(os.path.abspath(dpsi_path))
+    temp_dir = os.getcwd() #os.path.dirname(os.path.abspath(dpsi_path))
     temp_file = tempfile.NamedTemporaryFile(delete=False, mode='w', newline='', suffix=".txt", dir=temp_dir)
     final_df.to_csv(temp_file.name, index=False, sep="\t", na_rep="nan")
     temp_file.close()
@@ -228,7 +228,7 @@ def parse_rmats(rmats_filepath, verbose=False):
     for peice in range(len(rmats_dir)-1):
         output_dir += rmats_dir[peice] + "/"
 
-    temp_dir = os.path.dirname(os.path.abspath(rmats_filepath))
+    temp_dir = os.getcwd() #os.path.dirname(os.path.abspath(rmats_filepath))
     temp_file = tempfile.NamedTemporaryFile(delete=False, mode='w', newline='', suffix=".txt", dir=temp_dir)
     output = temp_file
     output.write('ensembl.id\tsymbol\tchr\tstrand\texon.start\texon.end\tpsi.condition1\tpsi.condition2\tdelta.psi\tpval\n')

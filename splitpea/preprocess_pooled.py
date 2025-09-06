@@ -59,10 +59,6 @@ def calculate_delta_psi(sum_bg_file, bg_file, target_file, outdir):
         })
         return df
 
-    def exon_key_tuple(row):
-        return (row['ensembl_gene_id'], row['symbol'], row['chr'],
-                int(row['strand']), int(row['exon_start']), int(row['exon_end']))
-
     def count_pairs_leq_diff(v_sorted, x):
         n = len(v_sorted)
         if n < 2:
@@ -87,17 +83,24 @@ def calculate_delta_psi(sum_bg_file, bg_file, target_file, outdir):
     sample_cols_bg = [c for c in bg_all.columns if c not in group_cols]
     bg_all = bg_all[group_cols + sample_cols_bg]
 
+    bg_num = bg_all[sample_cols_bg].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=float)
+
+    ens_   = bg_all["ensembl_gene_id"].to_numpy()
+    sym_   = bg_all["symbol"].to_numpy()
+    chr_  = bg_all["chr"].to_numpy()
+    strand_ = bg_all["strand"].astype("int64").to_numpy()
+    exon_start_ = bg_all["exon_start"].astype("int64").to_numpy()
+    exon_end_   = bg_all["exon_end"].astype("int64").to_numpy()
+
+    keys = list(zip(ens_, sym_, chr_, strand_, exon_start_, exon_end_))
+
     bg_groups = {}
-    for _, row in bg_all.iterrows():
-        key = exon_key_tuple(row)
-        vals = pd.to_numeric(row[sample_cols_bg], errors='coerce').to_numpy(dtype=float)
-        vals = vals[~np.isnan(vals)]
-        n = len(vals)
-        min_valid = max(10, int(n * 0.1))
-        if n < min_valid:
-            continue
-        v_sorted = np.sort(vals)
-        bg_groups[key] = v_sorted
+    for key, row_vals in zip(keys, bg_num):
+        vals = row_vals[~np.isnan(row_vals)]
+        n = vals.size
+        min_valid = max(10, int(n * 0.1)) 
+        if n >= min_valid:
+            bg_groups[key] = np.sort(vals)
 
     compare = pd.read_csv(target_file, sep='\t')
     compare = normalize_cmp(compare)
@@ -107,6 +110,7 @@ def calculate_delta_psi(sum_bg_file, bg_file, target_file, outdir):
     cols_out = group_cols + ['psi_background_samples', 'psi_compare_samples', 'delta_psi', 'pval']
 
     for sam in sample_cols_cmp:
+        print(f"Processing sample {sam}...")
         tmp = compare[group_cols + [sam]].copy()
         tmp = tmp.rename(columns={sam: 'psi_compare_samples'})
         joint = pd.merge(sum_bg, tmp, on=group_cols, how='inner', sort=False)
@@ -334,8 +338,8 @@ def read_sample_specific(
 
 
 def preprocess_pooled(
-    compare_file: str,
-    out_psi_dir: str,
+    compare_path: str,
+    out_psi_dir: str = None,
     *,
     background: Optional[str] = None,
     background_download_root: Optional[str] = None,
@@ -351,7 +355,7 @@ def preprocess_pooled(
     then combine spliced exons and compute delta PSI.
 
     Parameters:
-        compare_file:   Path to your compare.txt output file. You can also pass in a single rMATS output txt file (SE.MAT.JC.txt or SE.MATS.JCEC.txt), or a folder with rMATS SE.MATS.JC.txt or SE.MATS.JCEC.txt files and the function will process them for you. For rMATS, please rename the files in the folder to the names of your samples.
+        compare_path:   Path to your compare.txt output file. You can also pass in a single rMATS output txt file (SE.MAT.JC.txt or SE.MATS.JCEC.txt), or a folder with rMATS SE.MATS.JC.txt or SE.MATS.JCEC.txt files and the function will process them for you. For rMATS, please rename the files in the folder to the names of your samples.
         out_psi_dir:        Output directory containing PSI files that can be inputed to splitpea.
 
         tissue:         (optional) Tissue name from IRIS that will be dowloaded. 
@@ -369,10 +373,14 @@ def preprocess_pooled(
         preprocess_pooled(
             tissue="uterus",
             download_root="/uterus",
-            compare_file="splicing_matrix.SE.cov10.TCGA_UCS_T.txt",
+            compare_path="splicing_matrix.SE.cov10.TCGA_UCS_T.txt",
             psi_dir="/UCS_uterus"
         )
     """
+
+    if out_psi_dir is None:
+        out_psi_dir = "out_psi/"
+
     if bool(background) == bool(background_path):
         raise ValueError("You must provide exactly one of `background` or `background_path`.")
     
@@ -417,7 +425,8 @@ def preprocess_pooled(
         suffix = slug_map[slug]
 
         if not background_download_root:
-            raise ValueError("`background_download_root` must be set when using bundled `background`.")
+            background_download_root = "IRIS_background/"
+            #raise ValueError("`background_download_root` must be set when using bundled `background`.")
 
         remote_base = (
             "https://xinglabtrackhub.research.chop.edu"
@@ -454,23 +463,23 @@ def preprocess_pooled(
         )
         combined_file = combined_list[0]
 
-    if os.path.isdir(compare_file) or single_rMATS_compare:
+    if os.path.isdir(compare_path) or single_rMATS_compare:
         df_cmp = read_sample_specific(
-            in_file=compare_file,
+            in_file=compare_path,
             map_path=map_path,
             species=species,
             single_rMATS=single_rMATS_compare,
             inclevel=inclevel
         )
-        work_dir_ = os.path.dirname(compare_file) if os.path.isfile(compare_file) else compare_file
-        compare_file = os.path.join(work_dir_, "compare_SE_data.txt")
-        df_cmp.to_csv(compare_file, sep="\t", index=False)
+        work_dir_ = os.path.dirname(compare_path) if os.path.isfile(compare_path) else compare_path
+        compare_path = os.path.join(work_dir_, "compare_SE_data.txt")
+        df_cmp.to_csv(compare_path, sep="\t", index=False)
 
     print("Starting delta PSI calculation...")
     delta = calculate_delta_psi(
         combined_file,  
         background_file,    
-        compare_file,
+        compare_path,
         out_psi_dir
     )
 

@@ -140,9 +140,9 @@ G = splitpea.run("SE.MATS.JCEC.txt", "out/condB",
   - `sample_specific`: one file path  
   - `suppa2`: two file paths (`.psivec` and `.dpsi`, typically outputed from diffSplice)  
   - `rmats`: one JC or JCEC file path
-- **`out_file_prefix`** — Prefix for all output files (directory + base name)
 
 **Options:**
+- **`out_file_prefix`** — Prefix for all output files (directory + base name); if no prefix is given, the output prefix defaults to `out_rewired_network` 
 - `--differential_format {sample_specific,suppa2,rmats}` (default: `sample_specific`)
 - `--skip` *(int)* — Number of lines to skip in input file (default: `1`)
 - `--dpsi_cut` *(float)* — Delta PSI cutoff (default: `0.05`)
@@ -265,7 +265,7 @@ It either downloads a normal splicing matrix from IRIS (GTEx) for a chosen tissu
 You can provide either a .txt file from rMATS output files (SE.MATS.JC.txt or SE.MATS.JCEC.txt) for a single sample or a folder containing multiple samples and rMATS output files (SE.MATS.JC.txt or SE.MATS.JCEC.txt). The function will automatically process these inputs. For rMATS, it may be helpful to rename each file in the folder to match your sample names.
 
 What the function does: 
-1. Load a target splicing matrix (`compare_file`) with exon rows and sample columns (PSI values).
+1. Load a target splicing matrix (`compare_path`) with exon rows and sample columns (PSI values).
 2. Obtain a normal/background splicing matrix:
    - Either download GTEx `<Tissue>` from IRIS (if `background` is given), or
    - Use your local file (`background_path`).
@@ -278,7 +278,7 @@ Example (Python):
 ```python
 # Option A: download and use IRIS/GTEx matrix
 splitpea.preprocess_pooled(
-    compare_file="compare.txt",
+    compare_path="compare.txt",
     background="Brain",
     background_download_root="/data/iris_cache",   # creates GTEx_<Tissue>/splicing_matrix/ here
     out_psi_dir="out_psi"
@@ -286,14 +286,14 @@ splitpea.preprocess_pooled(
 
 # Option B: use a local normal matrix
 splitpea.preprocess_pooled(
-    compare_file="compare.txt",
+    compare_path="compare.txt",
     background_path="/path/to/GTEx_Brain/splicing_matrix.txt",
     out_psi_dir="out_psi"
 )
 ```
 
 **Inputs:**
-- **`compare_file`** *(required)* — Target (case) splicing matrix to compare against the pooled normal.  
+- **`compare_path`** *(required)* — Target (case) splicing matrix to compare against the pooled normal.  
   - Can be:  
     - a `.txt` file from rMATS (`SE.MATS.JC.txt` or `SE.MATS.JCEC.txt` format)
     - a directory of rMATS files (`SE.MATS.JC.txt` or `SE.MATS.JCEC.txt` format), with each file renamed to match its sample, or  
@@ -305,21 +305,21 @@ splitpea.preprocess_pooled(
 - **Normal/background matrix** — Provide **one** of:
   - **`background_`** — IRIS/GTEx tissue name to auto-download the background matrix (e.g., `Brain`, `AdiposeTissue`, …).  
     Optional: **`tissue_download_root`** to control where the `GTEx_<Tissue>/splicing_matrix/` folder is created.
-  - **`background_path`** — Path to a pre-downloaded normal splicing data. Same accepted formats/data files as `compare_file`.
+  - **`background_path`** — Path to a pre-downloaded normal splicing data. Same accepted formats/data files as `compare_path`.
 
 > You must supply **either** `background_` **or** `background__path`. 
 
 **Parameters:**
-- **`compare_file`** *(str, required)* — Path to the target splicing data to be compared.
-- **`out_psi_dir`** *(str, required)* — Output directory for per-sample Splitpea files (`{sample}-psi.txt`). Will be created if missing.
+- **`compare_path`** *(str, required)* — Path to the target splicing data to be compared.
+- **`out_psi_dir`** *(str)* — Output directory for per-sample Splitpea files (`{sample}-psi.txt`). Will be created if missing. If none is given, defaults to create a out_psi folder in the current working directory.
 - **`background`** *(str)* — IRIS/GTEx tissue name to auto-download the normal data.  
     **Must be one of:**
     `AdiposeTissue`, `AdrenalGland`, `Bladder`, `Blood`, `BloodVessel`, `Brain`, `Breast`, `CervixUteri`, `Colon`, `Esophagus`, `FallopianTube`, `Heart`, `Kidney`, `Liver`, `Lung`, `Muscle`, `Nerve`, `Ovary`, `Pancreas`, `Pituitary`, `Prostate`, `SalivaryGland`, `Skin`, `SmallIntestine`, `Spleen`, `Stomach`, `Testis`, `Thyroid`, `Uterus`, `Vagina`. 
-- **`background_download_root`** *(str)* — Root directory for the IRIS download cache (creates `GTEx_<Tissue>/splicing_matrix/` under this path).
+- **`background_download_root`** *(str)* — Root directory for the IRIS download cache (creates `GTEx_<Tissue>/splicing_matrix/` under this path). If not given, defaults to current working directory.
 - **`background_path`** *(str)* — Path to an existing normal/background splicing data file; bypasses download.
-- **`map_path`** *(str)* — Gene ID mapping: symbol/entrez/ensembl/uniprot
+- **`map_path`** *(str)* — Gene ID mapping: symbol/entrez/ensembl/uniprot. If none is given, uses bundled mapping.
 - **`species`** *(str)* — Species identifier (e.g. `human`, `mouse`); determines which default map path to use.   
-- **`single_rMATS_compare`** *(bool, optional)* — If True, treat `compare_file` as a single rMATS file instead of a directory.  
+- **`single_rMATS_compare`** *(bool, optional)* — If True, treat `compare_path` as a single rMATS file instead of a directory.  
 - **`single_rMATS_background`** *(bool, optional)* — If True, treat `background_path` as a single rMATS file instead of a directory.  
 - **`inclevel`** *(int, optional)* — Which inclusion-level field to use when parsing rMATS (1 or 2). Defaults to 1.  
 

@@ -4,9 +4,8 @@ from setuptools import setup, find_packages
 
 setup(
     name="splitpea",
-    version="0.1.57",
-    author="Jeffrey Zhong",
-    author_email="jz94@rice.edu",
+    version="0.1.61",
+    author="Jeffrey Zhong, Alyssa Cantu, Ruth Dannenfelser, Vicky Yao", 
     description="Splitpea: method for calculating network rewiring changes due to splicing",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
@@ -21,6 +20,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Operating System :: OS Independent",
     ],
+    license="BSD-3-Clause",
     python_requires='>=3.8',
     install_requires=[
         "numpy",

@@ -48,7 +48,7 @@ def fileExists(f):
 
 
 def run(in_file,
-        out_file_prefix: str,
+        out_file_prefix: str = None,
         skip: int = 1,
         dpsi_cut: float = 0.05,
         sigscore_cut: float = 0.05,
@@ -102,6 +102,9 @@ def run(in_file,
     """
     if verbose:
         logger.setLevel(logging.INFO)
+
+    if out_file_prefix is None:
+        out_file_prefix = "out_rewired_network"
 
     if differential_format.lower() == "suppa2":
         if not (isinstance(in_file, (list, tuple)) and len(in_file) == 2):
@@ -240,6 +243,10 @@ def run(in_file,
             logger.error("Failed to delete temporary file %s: %s", in_file, e)
 
     logger.info("Done")
+
+    if diff_splice_g.number_of_nodes() == 0 or diff_splice_g.number_of_edges() == 0:
+        print("Warning: no edges found. Check the gene identifiers (most supported is Ensembl) "
+            "or verify the organism.")
 
     return diff_splice_g
 
@@ -416,7 +423,7 @@ def main():
         'in_file', nargs='+',
         help="Input file path(s). For SUPPA2 format, please provide two files: psivec_path and dpsi_path."
     )
-    rewire_p.add_argument('out_file_prefix', 
+    rewire_p.add_argument('out_file_prefix', default = None, 
                         help="Prefix for output files.")
     rewire_p.add_argument('--differential_format', type=str, choices=['sample_specific', 'suppa2', 'rmats'], default='sample_specific', 
                         help="Input file format (default: sample_specific).")
@@ -597,11 +604,11 @@ def main():
         help="Download or use existing background psi files, combine exons, then calculate delta PSI"
     )
     pooled_p.add_argument(
-        "compare_file", type=str,
+        "compare_path", type=str,
         help="Path to your compare.txt output file"
     )
     pooled_p.add_argument(
-        "out_psi_dir", type=str,
+        "out_psi_dir", type=str, default=None,
         help="Output directory to write all per sample PSI results"
     )
     pooled_p.add_argument(
@@ -709,7 +716,7 @@ def main():
 
     elif args.command == "preprocess_pooled":
         preprocess_pooled(
-            compare_file=args.compare_file,
+            compare_path=args.compare_path,
             out_psi_dir=args.out_psi_dir,
             background=args.background,
             background_download_root=args.background_download_root,
