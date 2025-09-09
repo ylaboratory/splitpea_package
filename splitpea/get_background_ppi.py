@@ -27,19 +27,19 @@ import logging
 def get_background(ppif, ddif, entrezpfamf):
     # logger.info("Reading in network files for background PPI...")
     all_ddis = nx.read_weighted_edgelist(ddif)
-    all_ppis = nx.read_weighted_edgelist(ppif) 
+    all_ppis = nx.read_weighted_edgelist(ppif)
     entrez_pfams = nx.bipartite.read_edgelist(entrezpfamf)
     # logger.info("Full PPI info...")
     # logger.info(all_ppis)
 
-    # logger.info("Calculating background network...")    
+    # logger.info("Calculating background network...")
     # constructing graph w/ ppi nodes incident on genes w/ a ddi (w/o exon info)
     g = nx.Graph()
 
     for gi, gj in all_ppis.edges:
         if gi not in entrez_pfams or gj not in entrez_pfams:
             continue
-        
+
         for pfi in entrez_pfams[gi]:
             if pfi not in all_ddis:
                 continue
@@ -50,20 +50,24 @@ def get_background(ppif, ddif, entrezpfamf):
                     g.add_node(gi)
 
                 if gj not in g[gi]:
-                    g.add_edge(gi, gj,
-                                ppi_weight = all_ppis[gi][gj]['weight'],
-                                ppi_ddis = defaultdict(partial(defaultdict, set))) # cannot use lambda if want to pickle later
-                
-                g.edges[gi,gj]['ppi_ddis'][gi][pfi] |= ddi_overlap
+                    g.add_edge(
+                        gi,
+                        gj,
+                        ppi_weight=all_ppis[gi][gj]["weight"],
+                        ppi_ddis=defaultdict(partial(defaultdict, set)),
+                    )  # cannot use lambda if want to pickle later
+
+                g.edges[gi, gj]["ppi_ddis"][gi][pfi] |= ddi_overlap
 
     # logger.info( "PPI with DDI support (i.e., background)...")
     # logger.info(g)
     # logger.info("Outputting...")
 
-    with open("human_ppi_ddi_bg.pickle", 'wb') as out:
+    with open("human_ppi_ddi_bg.pickle", "wb") as out:
         pickle.dump(g, out)
 
     return g
+
 
 # [21:23:07] Reading in network files...
 # [21:23:09] Full PPI info...

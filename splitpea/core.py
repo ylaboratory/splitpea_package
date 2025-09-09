@@ -22,11 +22,14 @@ def tb_query(tb_file, chrom, start, end):
     (Adapted from https://github.com/slowkow/pytabix)
     """
     if shutil.which("tabix") is None:
-        raise RuntimeError("The 'tabix' binary is required but was not found. Please install it via 'sudo apt-get install tabix' or 'brew install htslib'.")
-    query = '{}:{}-{}'.format(chrom, start, end)
-    process = Popen(['tabix', '-f', tb_file, query], stdout=PIPE, text=True)
+        raise RuntimeError(
+            "The 'tabix' binary is required but was not found. Please install it via 'sudo apt-get install tabix' or 'brew install htslib'."
+        )
+    query = "{}:{}-{}".format(chrom, start, end)
+    process = Popen(["tabix", "-f", tb_file, query], stdout=PIPE, text=True)
     for line in process.stdout:
         yield line.strip().split()
+
 
 def calculate_edges(g, dex, tb, all_ddis, all_ppis, entrez_pfams):
     """
@@ -63,20 +66,22 @@ def calculate_edges(g, dex, tb, all_ddis, all_ppis, entrez_pfams):
                         g.nodes[gi][pfi] = defaultdict(dict)
 
                     if (pfi_start, pfi_end) not in g.nodes[gi][pfi]:
-                        g.nodes[gi][pfi][(pfi_start, pfi_end)]['dexons'] = set()
-                        g.nodes[gi][pfi][(pfi_start, pfi_end)]['min_dpsi'] = 1
+                        g.nodes[gi][pfi][(pfi_start, pfi_end)]["dexons"] = set()
+                        g.nodes[gi][pfi][(pfi_start, pfi_end)]["min_dpsi"] = 1
 
-                    g.nodes[gi][pfi][(pfi_start, pfi_end)]['dexons'].add((ex, ex_dpsi))
-                    if ex_dpsi < g.nodes[gi][pfi][(pfi_start, pfi_end)]['min_dpsi']:
-                        g.nodes[gi][pfi][(pfi_start, pfi_end)]['min_dpsi'] = ex_dpsi
+                    g.nodes[gi][pfi][(pfi_start, pfi_end)]["dexons"].add((ex, ex_dpsi))
+                    if ex_dpsi < g.nodes[gi][pfi][(pfi_start, pfi_end)]["min_dpsi"]:
+                        g.nodes[gi][pfi][(pfi_start, pfi_end)]["min_dpsi"] = ex_dpsi
 
                     if gj not in g[gi]:
-                        g.add_edge(gi, gj,
-                                   ppi_weight=all_ppis[gi][gj]['weight'],
-                                   ppi_ddis=defaultdict(partial(defaultdict, set)))
+                        g.add_edge(
+                            gi,
+                            gj,
+                            ppi_weight=all_ppis[gi][gj]["weight"],
+                            ppi_ddis=defaultdict(partial(defaultdict, set)),
+                        )
 
-                    g.edges[gi, gj]['ppi_ddis'][gi][pfi] |= ddi_overlap
-
+                    g.edges[gi, gj]["ppi_ddis"][gi][pfi] |= ddi_overlap
 
 
 def deduce_final_edge_weights(g):
@@ -89,10 +94,10 @@ def deduce_final_edge_weights(g):
         pos_dpsi = []
         neg_dpsi = []
 
-        for g_ddi in g[gi][gj]['ppi_ddis']:
-            for pf_g in g[gi][gj]['ppi_ddis'][g_ddi]:
+        for g_ddi in g[gi][gj]["ppi_ddis"]:
+            for pf_g in g[gi][gj]["ppi_ddis"][g_ddi]:
                 for pf_loc in g.nodes[g_ddi][pf_g]:
-                    pf_dpsi = g.nodes[g_ddi][pf_g][pf_loc]['min_dpsi']
+                    pf_dpsi = g.nodes[g_ddi][pf_g][pf_loc]["min_dpsi"]
                     if pf_dpsi < 0:
                         neg_dpsi.append(pf_dpsi)
                     else:
@@ -102,8 +107,8 @@ def deduce_final_edge_weights(g):
             chaos = True
             num_chaos += 1
 
-        g[gi][gj]['weight'] = average(pos_dpsi + neg_dpsi)
-        g[gi][gj]['chaos'] = chaos
-        g[gi][gj]['num_dpsi_pfs'] = len(pos_dpsi) + len(neg_dpsi)
+        g[gi][gj]["weight"] = average(pos_dpsi + neg_dpsi)
+        g[gi][gj]["chaos"] = chaos
+        g[gi][gj]["num_dpsi_pfs"] = len(pos_dpsi) + len(neg_dpsi)
 
-    g.graph['num_chaos'] = num_chaos
+    g.graph["num_chaos"] = num_chaos
