@@ -13,13 +13,7 @@ Splitpea quantifies rewiring in protein-protein interaction (PPI) networks drive
 Install from PyPI:
 
 ```bash
-# Note: Splitpea is not on the main PyPI yet.
-# Eventually you will be able to install it with:
-# pip install splitpea
-
-# For now, install from the test repository:
-pip install --index-url https://test.pypi.org/simple/ \
-            --extra-index-url https://pypi.org/simple splitpea
+pip install splitpea
 ```
 
 Some functions require `tabix` to be installed; to do so, simply run:
