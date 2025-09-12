@@ -182,7 +182,7 @@ Load a saved network (`.edges.pickle`) and export it in various formats or as a 
 **Example (Python):**
 ```python
 splitpea.plot(
-    pickle_path="out/sample1.edges.pickle",
+    rewired_net="out/sample1.edges.pickle",
     pdf_path="plot/sample1_plot.pdf",         # optional
     gephi_path="plot/sample1_gephi.csv",      # optional
     cytoscape_path="plot/sample1_cyto.gml",   # optional
@@ -221,7 +221,7 @@ Summarize edge counts and write per-gene statistics.
 Example (Python):
 ```python 
 splitpea.stats(
-    pickle_path="out/sample1.edges.pickle",
+    rewired_net="out/sample1.edges.pickle",
     out_file_prefix="stats/sample1",
     species="human",
     map_path=None,      # use bundled if None
@@ -357,8 +357,8 @@ Example (Python):
 
 ```python
 consensus_threshold_sizes = splitpea.analyze_consensus_threshold(
-    neg_path="consensus_network_neg.pickle",
-    pos_path="consensus_network_pos.pickle",
+    neg_consensus="consensus_network_neg.pickle",
+    pos_consensus="consensus_network_pos.pickle",
 )
 ```
 
