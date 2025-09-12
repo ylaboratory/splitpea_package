@@ -339,6 +339,7 @@ def plot(
 
     Parameters:
     - pickle_path: path to the '.edges.pickle' file (output of `rewire(...)`).
+    - networkx: alternatively, provide a networkx.Graph object directly.
     - with_labels: whether to draw node labels in the plot.
     - pdf_path: if provided, write a PDF of the plotted network to this path.
     - gephi_path: if provided, write a Gephi-compatible CSV to this path.
@@ -442,7 +443,8 @@ def stats(
     Output gene-level statistics for a rewired splicing-induced PPI network.
 
     Parameters:
-      rewire_net: Path to the pickled rewired network.
+      pickle_path: Path to the pickled rewired network.
+      networkx: NetworkX object of the rewired network. Must provide either pickle_path or networkx.
       dat_file: Path to the input file containing the rewired network edges (e.g., one edge per line).
       out_file: Path (or prefix) for the output gene stats summary.
       ppif: Protein protein interaction reference file (default: human_ppi_0.5.dat).
