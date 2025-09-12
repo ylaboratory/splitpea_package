@@ -221,7 +221,6 @@ Summarize edge counts and write per-gene statistics.
 Example (Python):
 ```python 
 splitpea.stats(
-    dat_file="out/sample1.edges.dat",
     rewire_net="out/sample1.edges.pickle",
     out_file_prefix="stats/sample1",
     species="human",
