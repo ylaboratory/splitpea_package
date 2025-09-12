@@ -222,7 +222,7 @@ Summarize edge counts and write per-gene statistics.
 Example (Python):
 ```python 
 splitpea.stats(
-    rewire_net="out/sample1.edges.pickle",
+    pickle_path="out/sample1.edges.pickle",
     out_file_prefix="stats/sample1",
     species="human",
     map_path=None,      # use bundled if None
