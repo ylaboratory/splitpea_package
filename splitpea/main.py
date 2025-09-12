@@ -20,7 +20,7 @@ import shutil
 from .exons import Exons
 from .parser import parse_suppa2
 from .parser import parse_rmats
-from .grab_stats import rewired_edges_stat
+from .grab_stats import rewired_edges_stat, rewired_edges_stat_df
 from .grab_stats import rewired_genes
 from .get_background_ppi import get_background
 from .plot_network import plot_rewired_network
@@ -331,6 +331,7 @@ def plot(
     species: str = "human",
     self_edges: bool = False,
     lcc: bool = True,
+    threshold: float = 0.0,
 ):
     """
     Load a pickled Graph (as created by `rewire(...)`) and call plot_rewired_network().
@@ -342,6 +343,8 @@ def plot(
     - gephi_path: if provided, write a Gephi-compatible CSV to this path.
     - cytoscape_path: if provided, write a Cytoscape GML to this path.
     - self_edges: if you want to keep self edges from the plots
+    - lcc: if True, only display the largest connected component
+    - threshold: if > 0, only keep edges passing threshold for consensus network only
     """
 
     if not os.path.isfile(pickle_path):
@@ -349,6 +352,13 @@ def plot(
 
     with open(pickle_path, "rb") as f:
         G = pickle.load(f)
+
+    if threshold > 0:
+        G = G.edge_subgraph(
+            e
+            for e, d in G.edges.items()
+            if d["num_neg"] >= threshold * G.graph["num_graphs"]
+        ).copy()
 
     if not self_edges:
         G.remove_edges_from(nx.selfloop_edges(G))
@@ -413,8 +423,8 @@ def plot(
 
 
 def stats(
-    dat_file: str,
     rewire_net: str,
+    dat_file: str = None,
     out_file_prefix: str = None,
     ppif: str = None,
     ddif: str = None,
@@ -469,7 +479,20 @@ def stats(
                 file = pkg_resources.files(reference).joinpath("hsa_mapping_all.txt")
                 map_path = str(file)
 
-    stats = rewired_edges_stat(dat_file)
+    if dat_file != None:
+        stats = rewired_edges_stat(dat_file)
+    else:
+        with open(rewire_net, "rb") as f:
+            diff_splice_g = pickle.load(f)
+        df_dat = pd.DataFrame(
+            [
+                (u, v, attr.get("weight", 0), attr.get("chaos", False))
+                for u, v, attr in diff_splice_g.edges(data=True)
+            ],
+            columns=["node1", "node2", "weight", "chaos"],
+        )
+        stats = rewired_edges_stat_df(df_dat)
+
     gain, loss, chaos = (int(stats[k]) for k in ("gain", "loss", "chaos"))
     print(
         f"""\
@@ -666,6 +689,12 @@ def main():
         default=True,
         help="Only display the largest connected component.",
     )
+    plot_p.add_argument(
+        "--threshold",
+        type=float,
+        default=0.0,
+        help="If > 0, only keep edges passing threshold for consensus network only (default: 0.0).",
+    )
 
     stats_p = subparsers.add_parser(
         "stats",
@@ -815,8 +844,8 @@ def main():
     )
 
     analyze_p = subparsers.add_parser(
-    "analyze_consensus_threshold",
-    help="threshold consensus neg/pos graphs, write sizes, and plot (#nodes & prop_nodes)",
+        "analyze_consensus_threshold",
+        help="threshold consensus neg/pos graphs, write sizes, and plot (#nodes & prop_nodes)",
     )
 
     analyze_p.add_argument(
@@ -897,7 +926,6 @@ def main():
         help="Optional text to prepend to plot titles (e.g., 'Consensus LCC')",
     )
 
-
     args = parser.parse_args()
 
     if args.command == "run":
@@ -938,6 +966,7 @@ def main():
             species=args.species,
             self_edges=args.self_edges,
             lcc=args.lcc,
+            threshold=args.threshold,
         )
     elif args.command == "stats":
         stats(
@@ -977,7 +1006,7 @@ def main():
 
     elif args.command == "get_consensus_network":
         get_consensus_network(net_dir=args.net_dir)
-    
+
     elif args.command == "analyze_consensus_threshold":
         analyze_consensus_threshold(
             neg_path=args.neg_path,

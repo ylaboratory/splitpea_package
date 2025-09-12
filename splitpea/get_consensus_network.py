@@ -83,19 +83,24 @@ def get_consensus_network(net_dir):
 
     return c_consensus_neg, c_consensus_pos
 
+
 def analyze_consensus_threshold(
     neg_path: Optional[str] = None,
     pos_path: Optional[str] = None,
     thresholds: Iterable[float] = (0.1, 0.25, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99, 1.0),
     label: str = "sample",
     # outputs
-    pickles_dir: Optional[str] = None,      # default: ./threshold_networks/<label>/
+    pickles_dir: Optional[str] = None,  # default: ./threshold_networks/<label>/
     save_pickles: bool = True,
     write_txt: bool = True,
-    txt_path: Optional[str] = None,         # default: <pickles_dir>/consensus_threshold.lcc_sizes.txt
+    txt_path: Optional[
+        str
+    ] = None,  # default: <pickles_dir>/consensus_threshold.lcc_sizes.txt
     # plotting
-    save_pdf_prefix: Optional[str] = None,  # saves ..._num_nodes.pdf and ..._prop_nodes.pdf
-    title_prefix: Optional[str] = None,     # adds "<title_prefix>-" to plot titles 
+    save_pdf_prefix: Optional[
+        str
+    ] = None,  # saves ..._num_nodes.pdf and ..._prop_nodes.pdf
+    title_prefix: Optional[str] = None,  # adds "<title_prefix>-" to plot titles
 ) -> pd.DataFrame:
     """
     Analyze consensus thresholds for one label (e.g., 'BRCA').
@@ -123,11 +128,17 @@ def analyze_consensus_threshold(
             return nx.Graph()
         return H.subgraph(max(nx.connected_components(H), key=len)).copy()
 
-    def _threshold_graph(G: nx.Graph, edge_count_attr: str, num_graphs: int, thr: float) -> nx.Graph:
+    def _threshold_graph(
+        G: nx.Graph, edge_count_attr: str, num_graphs: int, thr: float
+    ) -> nx.Graph:
         if G is None or G.number_of_edges() == 0:
             return nx.Graph()
         cutoff = thr * num_graphs
-        keep_edges = [(u, v) for u, v in G.edges if G.edges[(u, v)].get(edge_count_attr, 0) >= cutoff]
+        keep_edges = [
+            (u, v)
+            for u, v in G.edges
+            if G.edges[(u, v)].get(edge_count_attr, 0) >= cutoff
+        ]
         if not keep_edges:
             return nx.Graph()
         H = nx.Graph()
@@ -167,19 +178,21 @@ def analyze_consensus_threshold(
         txt_path = os.path.join(pickles_dir, "consensus_threshold.lcc_sizes.txt")
 
     rows = []
-    baseline_nodes = {}  
+    baseline_nodes = {}
 
     for d, G in graphs.items():
         n0 = G.number_of_nodes()
-        baseline_nodes[d] = max(n0, 1)  
-        rows.append({
-            "label": label,
-            "direction": d,
-            "threshold": 0.0,
-            "num_nodes": n0,
-            "num_edges": G.number_of_edges(),
-            "prop_nodes": n0 / baseline_nodes[d],
-        })
+        baseline_nodes[d] = max(n0, 1)
+        rows.append(
+            {
+                "label": label,
+                "direction": d,
+                "threshold": 0.0,
+                "num_nodes": n0,
+                "num_edges": G.number_of_edges(),
+                "prop_nodes": n0 / baseline_nodes[d],
+            }
+        )
 
     for t in thresholds:
         for d, G in graphs.items():
@@ -188,25 +201,46 @@ def analyze_consensus_threshold(
             if save_pickles:
                 d_dir = os.path.join(pickles_dir, d)
                 os.makedirs(d_dir, exist_ok=True)
-                out_pickle = os.path.join(d_dir, f"{label}_consensus_{'neg' if d=='negative' else 'pos'}.thres_{t}.pickle")
+                out_pickle = os.path.join(
+                    d_dir,
+                    f"{label}_consensus_{'neg' if d=='negative' else 'pos'}.thres_{t}.pickle",
+                )
                 with open(out_pickle, "wb") as f:
                     pickle.dump(H, f)
 
             n = H.number_of_nodes()
-            rows.append({
-                "label": label,
-                "direction": d,
-                "threshold": float(t),
-                "num_nodes": n,
-                "num_edges": H.number_of_edges(),
-                "prop_nodes": n / baseline_nodes[d],
-            })
+            rows.append(
+                {
+                    "label": label,
+                    "direction": d,
+                    "threshold": float(t),
+                    "num_nodes": n,
+                    "num_edges": H.number_of_edges(),
+                    "prop_nodes": n / baseline_nodes[d],
+                }
+            )
 
-    df = pd.DataFrame(rows, columns=["label", "direction", "threshold", "num_nodes", "num_edges", "prop_nodes"])
+    df = pd.DataFrame(
+        rows,
+        columns=[
+            "label",
+            "direction",
+            "threshold",
+            "num_nodes",
+            "num_edges",
+            "prop_nodes",
+        ],
+    )
 
     if write_txt:
         header = not os.path.exists(txt_path)
-        df.to_csv(txt_path, sep="\t", index=False, mode="a" if not header else "w", header=header)
+        df.to_csv(
+            txt_path,
+            sep="\t",
+            index=False,
+            mode="a" if not header else "w",
+            header=header,
+        )
 
     def _plot(df_plot: pd.DataFrame, y: str, title_suffix: str, pdf_suffix: str):
         plt.figure(figsize=(7.5, 5))
