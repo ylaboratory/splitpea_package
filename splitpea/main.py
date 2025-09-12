@@ -32,7 +32,7 @@ from .preprocess_pooled import (
     combine_spliced_exon,
     preprocess_pooled,
 )
-from .get_consensus_network import get_consensus_network
+from .get_consensus_network import get_consensus_network, analyze_consensus_threshold
 
 import importlib_resources as pkg_resources
 from .src import reference
@@ -814,6 +814,90 @@ def main():
         "net_dir", type=str, help="Path to your directory of rewired networks"
     )
 
+    analyze_p = subparsers.add_parser(
+    "analyze_consensus_threshold",
+    help="threshold consensus neg/pos graphs, write sizes, and plot (#nodes & prop_nodes)",
+    )
+
+    analyze_p.add_argument(
+        "--neg-path",
+        type=str,
+        default=None,
+        help="Path to <label>_consensus_neg.pickle (optional; provide at least one of --neg-path/--pos-path)",
+    )
+    analyze_p.add_argument(
+        "--pos-path",
+        type=str,
+        default=None,
+        help="Path to <label>_consensus_pos.pickle (optional; provide at least one of --neg-path/--pos-path)",
+    )
+    analyze_p.add_argument(
+        "--thresholds",
+        type=float,
+        nargs="+",
+        default=[0.1, 0.25, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99, 1.0],
+        help="Space-separated list of thresholds (default: 0.1 0.25 0.5 0.6 0.7 0.8 0.9 0.95 0.99 1.0)",
+    )
+    analyze_p.add_argument(
+        "--label",
+        type=str,
+        default="sample",
+        help="Label/group name (used in outputs and plot titles) (default: 'sample')",
+    )
+
+    # outputs
+    analyze_p.add_argument(
+        "--pickles-dir",
+        type=str,
+        default=None,
+        help="Directory to save per-threshold graphs (default: ./threshold_networks/<label>/)",
+    )
+    analyze_p.add_argument(
+        "--save-pickles",
+        dest="save_pickles",
+        action="store_true",
+        default=True,
+        help="Save per-threshold pickles (default: enabled)",
+    )
+    analyze_p.add_argument(
+        "--no-save-pickles",
+        dest="save_pickles",
+        action="store_false",
+        help="Disable saving per-threshold pickles",
+    )
+    analyze_p.add_argument(
+        "--write-txt",
+        dest="write_txt",
+        action="store_true",
+        default=True,
+        help="Write TSV of sizes (default: enabled)",
+    )
+    analyze_p.add_argument(
+        "--no-write-txt",
+        dest="write_txt",
+        action="store_false",
+        help="Disable writing TSV",
+    )
+    analyze_p.add_argument(
+        "--txt-path",
+        type=str,
+        default=None,
+        help="Explicit TSV path (default: <pickles_dir>/consensus_threshold.lcc_sizes.txt)",
+    )
+    analyze_p.add_argument(
+        "--save-pdf-prefix",
+        type=str,
+        default=None,
+        help="If set, save plots as <prefix>_num_nodes.pdf and <prefix>_prop_nodes.pdf",
+    )
+    analyze_p.add_argument(
+        "--title-prefix",
+        type=str,
+        default=None,
+        help="Optional text to prepend to plot titles (e.g., 'Consensus LCC')",
+    )
+
+
     args = parser.parse_args()
 
     if args.command == "run":
@@ -893,6 +977,20 @@ def main():
 
     elif args.command == "get_consensus_network":
         get_consensus_network(net_dir=args.net_dir)
+    
+    elif args.command == "analyze_consensus_threshold":
+        analyze_consensus_threshold(
+            neg_path=args.neg_path,
+            pos_path=args.pos_path,
+            thresholds=args.thresholds,
+            label=args.label,
+            pickles_dir=args.pickles_dir,
+            save_pickles=args.save_pickles,
+            write_txt=args.write_txt,
+            txt_path=args.txt_path,
+            save_pdf_prefix=args.save_pdf_prefix,
+            title_prefix=args.title_prefix,
+        )
 
 
 if __name__ == "__main__":

@@ -91,6 +91,7 @@ Main subcommands:
 - **`stats`** — Compute edge/gene statistics
 - **`preprocess_pooled`** — Generate the differential exon table for sample-specific mode
 - **`get_consensus_network`**- Generate summary consensus networks from a directory of rewired networks
+- **`analyze_consensus_threshold`** — Threshold consensus neg/pos graphs across user-defined cutoffs and generate summary statistics and visualizations.
 
 ### Command line
 
@@ -345,6 +346,41 @@ Parameters:
 - **Files written:**
   - `consensus_network_neg.pickle`
   - `consensus_network_pos.pickle` 
+
+---
+
+### `analyze_consensus_threshold`
+
+Threshold consensus negative and/or positive rewired networks (from `splitpea.get_consensus_network`) across user-defined cutoffs. Optionally save per-threshold graphs, and plot the # nodes and proportion of nodes retained across thresholds.
+
+Example (Python):
+
+```python
+consensus_threshold_sizes = splitpea.analyze_consensus_threshold(
+    neg_path="consensus_network_neg.pickle",
+    pos_path="consensus_network_pos.pickle",
+)
+```
+
+**Parameters:**
+- **`neg_path`** *(str, optional)* — Path to consensus negative graph (`*_consensus_neg.pickle`).
+- **`pos_path`** *(str, optional)* — Path to consensus positive graph (`*_consensus_pos.pickle`).
+- **`thresholds`** *(list[float], optional)* — List of thresholds to evaluate (default: `[0.1, 0.25, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99, 1.0]`).
+- **`label`** *(str, optional)* — Label/group name used in output and plots (default: `"sample"`).
+- **`pickles_dir`** *(str, optional)* — Directory to save per-threshold graphs (default: `./threshold_networks/<label>/`).
+- **`save_pickles`** *(bool, default `True`)* — Save per-threshold graphs as `.pickle`.
+- **`write_txt`** *(bool, default `True`)* — Write TSV of sizes for each threshold.
+- **`txt_path`** *(str, optional)* — Path for txt (default: `<pickles_dir>/consensus_threshold.lcc_sizes.txt`).
+- **`save_pdf_prefix`** *(str, optional)* — If set, saves plots as `<prefix>_num_nodes.pdf` and `<prefix>_prop_nodes.pdf`.
+- **`title_prefix`** *(str, optional)* — Optional text to prepend to plot titles.
+
+**Outputs:**
+- **`consensus_threshold_sizes`** *(pandas.DataFrame)* — Table of sizes per threshold with columns:  
+  `label, direction, threshold, num_nodes, num_edges, prop_nodes`
+- **Files written (optional):**
+  - `threshold_networks/<label>/<direction>/<label>_consensus_<neg|pos>.thres_<t>.pickle` — thresholded graphs.
+  - `threshold_networks/<label>/consensus_threshold.lcc_sizes.txt` — TSV summary of sizes.
+  - `<prefix>_num_nodes.pdf` and `<prefix>_prop_nodes.pdf` — plots of #nodes and proportion-of-nodes vs threshold.
 
 
 ---
