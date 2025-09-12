@@ -87,6 +87,8 @@ def get_consensus_network(net_dir):
 def analyze_consensus_threshold(
     neg_path: Optional[str] = None,
     pos_path: Optional[str] = None,
+    neg_networkx: Optional[nx.Graph] = None,
+    pos_networkx: Optional[nx.Graph] = None,
     thresholds: Iterable[float] = (0.1, 0.25, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99, 1.0),
     label: str = "sample",
     # outputs
@@ -116,8 +118,10 @@ def analyze_consensus_threshold(
     Returns a DataFrame with columns:
       [label, direction, threshold, num_nodes, num_edges, prop_nodes]
     """
-    if not neg_path and not pos_path:
-        raise ValueError("Provide at least one of neg_path or pos_path.")
+    if not neg_path and not pos_path and not neg_networkx and not pos_networkx:
+        raise ValueError(
+            "Provide at least one of neg_path, pos_path, neg_networkx, or pos_networkx."
+        )
 
     def _largest_cc_or_empty(G: nx.Graph) -> nx.Graph:
         if G is None or G.number_of_edges() == 0 or G.number_of_nodes() == 0:
@@ -149,13 +153,19 @@ def analyze_consensus_threshold(
 
     graphs = {}
     edge_attr = {}
-    if neg_path:
-        with open(neg_path, "rb") as f:
-            graphs["negative"] = pickle.load(f)
+    if neg_path or neg_networkx:
+        if neg_networkx:
+            graphs["negative"] = neg_networkx
+        else:
+            with open(neg_path, "rb") as f:
+                graphs["negative"] = pickle.load(f)
         edge_attr["negative"] = "num_neg"
-    if pos_path:
-        with open(pos_path, "rb") as f:
-            graphs["positive"] = pickle.load(f)
+    if pos_path or pos_networkx:
+        if pos_networkx:
+            graphs["positive"] = pos_networkx
+        else:
+            with open(pos_path, "rb") as f:
+                graphs["positive"] = pickle.load(f)
         edge_attr["positive"] = "num_pos"
 
     nums = []
