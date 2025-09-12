@@ -16,6 +16,7 @@ import logging
 import csv
 import tempfile
 import shutil
+from typing import Union
 
 from .exons import Exons
 from .parser import parse_suppa2
@@ -319,8 +320,7 @@ def run(
 
 
 def plot(
-    pickle_path: str = None,
-    networkx: nx.Graph = None,
+    rewired_net: Union[str, nx.Graph],
     with_labels: bool = False,
     pdf_path: str = None,
     gephi_path: str = None,
@@ -338,8 +338,7 @@ def plot(
     Load a pickled Graph (as created by `rewire(...)`) and call plot_rewired_network().
 
     Parameters:
-    - pickle_path: path to the '.edges.pickle' file (output of `rewire(...)`).
-    - networkx: alternatively, provide a networkx.Graph object directly.
+    - rewired_net: path to the '.edges.pickle' file (output of `rewire(...)`) or a networkx.Graph object.
     - with_labels: whether to draw node labels in the plot.
     - pdf_path: if provided, write a PDF of the plotted network to this path.
     - gephi_path: if provided, write a Gephi-compatible CSV to this path.
@@ -349,13 +348,14 @@ def plot(
     - threshold: if > 0, only keep edges passing threshold for consensus network only
     """
 
-    if pickle_path != None:
-        if not os.path.isfile(pickle_path):
-            sys.exit(f"ERROR: pickle file '{pickle_path}' not found.")
-        with open(pickle_path, "rb") as f:
-            G = pickle.load(f)
-    elif networkx != None:
-        G = networkx
+    if rewired_net != None:
+        if isinstance(rewired_net, str):
+            if not os.path.isfile(rewired_net):
+                sys.exit(f"ERROR: pickle file '{rewired_net}' not found.")
+            with open(rewired_net, "rb") as f:
+                G = pickle.load(f)
+        elif isinstance(rewired_net, nx.Graph):
+            G = rewired_net
     else:
         sys.exit("ERROR: either pickle_path or networkx must be provided.")
 
@@ -429,8 +429,7 @@ def plot(
 
 
 def stats(
-    pickle_path: str = None,
-    networkx: nx.Graph = None,
+    rewired_net: Union[str, nx.Graph] = None,
     dat_file: str = None,
     out_file_prefix: str = None,
     ppif: str = None,
@@ -443,8 +442,7 @@ def stats(
     Output gene-level statistics for a rewired splicing-induced PPI network.
 
     Parameters:
-      pickle_path: Path to the pickled rewired network.
-      networkx: NetworkX object of the rewired network. Must provide either pickle_path or networkx.
+      rewired_net: Path to the '.edges.pickle' file (output of `rewire(...)`) or a networkx.Graph object.
       dat_file: Path to the input file containing the rewired network edges (e.g., one edge per line).
       out_file: Path (or prefix) for the output gene stats summary.
       ppif: Protein protein interaction reference file (default: human_ppi_0.5.dat).
@@ -490,15 +488,18 @@ def stats(
     if dat_file != None:
         stats = rewired_edges_stat(dat_file)
     else:
-        if pickle_path != None:
-            if not os.path.isfile(pickle_path):
-                sys.exit(f"ERROR: pickle file '{pickle_path}' not found.")
-            with open(pickle_path, "rb") as f:
-                diff_splice_g = pickle.load(f)
+        if rewired_net != None:
+            if isinstance(rewired_net, str):
+                if not os.path.isfile(rewired_net):
+                    sys.exit(f"ERROR: pickle file '{rewired_net}' not found.")
+                with open(rewired_net, "rb") as f:
+                    diff_splice_g = pickle.load(f)
+            elif isinstance(rewired_net, nx.Graph):
+                diff_splice_g = rewired_net
         elif networkx != None:
             diff_splice_g = networkx
         else:
-            sys.exit("ERROR: either pickle_path or networkx must be provided.")
+            sys.exit("ERROR: either rewired_net or networkx must be provided.")
         df_dat = pd.DataFrame(
             [
                 (u, v, attr.get("weight", 0), attr.get("chaos", False))
@@ -519,15 +520,18 @@ def stats(
     )
 
     background = get_background(ppif, ddif, entrezpfamf)
-    if pickle_path != None:
-        if not os.path.isfile(pickle_path):
-            sys.exit(f"ERROR: pickle file '{pickle_path}' not found.")
-        with open(pickle_path, "rb") as f:
-            diff_splice_g = pickle.load(f)
+    if rewired_net != None:
+        if isinstance(rewired_net, str):
+            if not os.path.isfile(rewired_net):
+                sys.exit(f"ERROR: pickle file '{rewired_net}' not found.")
+            with open(rewired_net, "rb") as f:
+                diff_splice_g = pickle.load(f)
+        elif isinstance(rewired_net, nx.Graph):
+            diff_splice_g = rewired_net
     elif networkx != None:
         diff_splice_g = networkx
     else:
-        sys.exit("ERROR: either pickle_path or networkx must be provided.")
+        sys.exit("ERROR: either rewired_net or networkx must be provided.")
     gene_stats_df = rewired_genes(diff_splice_g, background, map_path)
     if out_file_prefix != None:
         gene_stats_df.to_csv(out_file_prefix + "_gene_degree.csv", index=False)
@@ -649,10 +653,10 @@ def main():
         "plot", help="load a saved rewired network (.edges.pickle) and produce plots"
     )
     plot_p.add_argument(
-        "pickle_path", help="Path to the '.edges.pickle' file (output of `rewire`)."
-    )
-    plot_p.add_argument(
-        "networkx", help="Path to the NetworkX object of the rewired network."
+        "--rewired_net",
+        type=str,
+        default=None,
+        help="Path to the '.edges.pickle' file (output of `rewire(...)`) or a networkx.Graph object.",
     )
     plot_p.add_argument(
         "--with_labels",
@@ -726,10 +730,10 @@ def main():
         help="compute and write gene level statistics for a rewired splicing PPI network",
     )
     stats_p.add_argument(
-        "pickle_path", type=str, help="Path to pickle file of rewired network"
-    )
-    stats_p.add_argument(
-        "networkx", type=str, help="NetworkX object of rewired network"
+        "--rewired_net",
+        type=str,
+        default=None,
+        help="Path to the '.edges.pickle' file (output of `rewire(...)`) or a networkx.Graph object.",
     )
     stats_p.add_argument(
         "dat_file",
@@ -875,10 +879,18 @@ def main():
         "analyze_consensus_threshold",
         help="threshold consensus neg/pos graphs, write sizes, and plot (#nodes & prop_nodes)",
     )
-    analyze_p.add_argument("--neg_path", type=str, default=None)
-    analyze_p.add_argument("--pos_path", type=str, default=None)
-    analyze_p.add_argument("--neg_networkx", type=str, default=None)
-    analyze_p.add_argument("--pos_networkx", type=str, default=None)
+    analyze_p.add_argument(
+        "--neg_consensus",
+        type=str,
+        default=None,
+        help="Path to negative consensus graph (pickle file or networkx graph)",
+    )
+    analyze_p.add_argument(
+        "--pos_consensus",
+        type=str,
+        default=None,
+        help="Path to positive consensus graph (pickle file or networkx graph)",
+    )
     analyze_p.add_argument(
         "--thresholds",
         type=float,
@@ -925,8 +937,7 @@ def main():
         )
     elif args.command == "plot":
         plot(
-            pickle_path=args.pickle_path,
-            networkx=args.networkx,
+            rewired_net=args.rewired_net,
             with_labels=args.with_labels,
             pdf_path=args.pdf_path,
             gephi_path=args.gephi_path,
@@ -942,8 +953,7 @@ def main():
         )
     elif args.command == "stats":
         stats(
-            pickle_path=args.pickle_path,
-            networkx=args.networkx,
+            rewired_net=args.rewired_net,
             dat_file=args.dat_file,
             out_file_prefix=args.out_file_prefix,
             ppif=args.ppif,
@@ -982,10 +992,8 @@ def main():
 
     elif args.command == "analyze_consensus_threshold":
         analyze_consensus_threshold(
-            neg_path=args.neg_path,
-            pos_path=args.pos_path,
-            neg_networkx=args.neg_networkx,
-            pos_networkx=args.pos_networkx,
+            neg_consensus=args.neg_consensus,
+            pos_consensus=args.pos_consensus,
             thresholds=args.thresholds,
             label=args.label,
             pickles_dir=args.pickles_dir,

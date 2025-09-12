@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Iterable, Optional
 import pandas as pd
 import matplotlib.pyplot as plt
+from typing import Union
 
 
 def get_consensus_network(net_dir):
@@ -85,10 +86,8 @@ def get_consensus_network(net_dir):
 
 
 def analyze_consensus_threshold(
-    neg_path: Optional[str] = None,
-    pos_path: Optional[str] = None,
-    neg_networkx: Optional[nx.Graph] = None,
-    pos_networkx: Optional[nx.Graph] = None,
+    neg_consensus: Union[str, nx.Graph],
+    pos_consensus: Union[str, nx.Graph],
     thresholds: Iterable[float] = (0.1, 0.25, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99, 1.0),
     label: str = "sample",
     # outputs
@@ -108,8 +107,8 @@ def analyze_consensus_threshold(
     Analyze consensus thresholds for one label (e.g., 'BRCA').
 
     Provide either/both:
-      - neg_path: path to <label>_consensus_neg.pickle (edge attr 'num_neg')
-      - pos_path: path to <label>_consensus_pos.pickle (edge attr 'num_pos')
+      - neg_consensus: path to <label>_consensus_neg.pickle (edge attr 'num_neg')
+      - pos_consensus: path to <label>_consensus_pos.pickle (edge attr 'num_pos')
 
     Saves per-threshold graphs (no joint) into pickles_dir/<direction>/,
     writes a TSV of sizes, and plots BOTH #nodes and proportion-of-nodes
@@ -118,10 +117,8 @@ def analyze_consensus_threshold(
     Returns a DataFrame with columns:
       [label, direction, threshold, num_nodes, num_edges, prop_nodes]
     """
-    if not neg_path and not pos_path and not neg_networkx and not pos_networkx:
-        raise ValueError(
-            "Provide at least one of neg_path, pos_path, neg_networkx, or pos_networkx."
-        )
+    if not neg_consensus and not pos_consensus:
+        raise ValueError("Provide at least one of neg_consensus or pos_consensus.")
 
     def _largest_cc_or_empty(G: nx.Graph) -> nx.Graph:
         if G is None or G.number_of_edges() == 0 or G.number_of_nodes() == 0:
@@ -153,18 +150,19 @@ def analyze_consensus_threshold(
 
     graphs = {}
     edge_attr = {}
-    if neg_path or neg_networkx:
-        if neg_networkx:
-            graphs["negative"] = neg_networkx
+
+    if neg_consensus:
+        if isinstance(neg_consensus, nx.Graph):
+            graphs["negative"] = neg_consensus
         else:
-            with open(neg_path, "rb") as f:
+            with open(neg_consensus, "rb") as f:
                 graphs["negative"] = pickle.load(f)
         edge_attr["negative"] = "num_neg"
-    if pos_path or pos_networkx:
-        if pos_networkx:
-            graphs["positive"] = pos_networkx
+    if pos_consensus:
+        if isinstance(pos_consensus, nx.Graph):
+            graphs["positive"] = pos_consensus
         else:
-            with open(pos_path, "rb") as f:
+            with open(pos_consensus, "rb") as f:
                 graphs["positive"] = pickle.load(f)
         edge_attr["positive"] = "num_pos"
 
