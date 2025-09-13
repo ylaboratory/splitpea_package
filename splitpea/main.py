@@ -735,7 +735,7 @@ def main():
         "--plot_matplot",
         type=bool,
         default=None,
-        help="If True, use Matplotlib for plotting (default: True if pdf_path is provided and number of nodes/edges is below max_nodes/max_edges, else false).",
+        help="If True, renders a Matplotlib network (default: True if pdf_path is provided and number of nodes/edges is below max_nodes/max_edges, else False).",
     )
 
     stats_p = subparsers.add_parser(
