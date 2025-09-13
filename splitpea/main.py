@@ -16,7 +16,7 @@ import logging
 import csv
 import tempfile
 import shutil
-from typing import Union
+from typing import Union, Optional
 
 from .exons import Exons
 from .parser import parse_suppa2
@@ -333,7 +333,7 @@ def plot(
     self_edges: bool = False,
     lcc: bool = True,
     threshold: float = 0.0,
-    plot_matplot: bool | None = None,
+    plot_matplot: Optional[bool] = None,
 ):
     """
     Load a pickled Graph (as created by `rewire(...)`) and call plot_rewired_network().
