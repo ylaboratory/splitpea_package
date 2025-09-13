@@ -366,7 +366,9 @@ def plot(
             for e, d in G.edges.items()
             if (
                 ("num_neg" in d and d["num_neg"] >= threshold * G.graph["num_graphs"])
-                or ("num_pos" in d and d["num_pos"] >= threshold * G.graph["num_graphs"])
+                or (
+                    "num_pos" in d and d["num_pos"] >= threshold * G.graph["num_graphs"]
+                )
             )
         ).copy()
 
