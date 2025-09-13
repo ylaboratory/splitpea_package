@@ -77,3 +77,11 @@ def rewired_edges_stat(dat):
     chaos = (df["chaos"] == True).sum()
 
     return {"gain": gain, "loss": loss, "chaos": chaos}
+
+
+def rewired_edges_stat_df(df):
+    gain = ((df["weight"] > 0) & (df["chaos"] == False)).sum()
+    loss = ((df["weight"] < 0) & (df["chaos"] == False)).sum()
+    chaos = (df["chaos"] == True).sum()
+
+    return {"gain": gain, "loss": loss, "chaos": chaos}

@@ -16,11 +16,12 @@ import logging
 import csv
 import tempfile
 import shutil
+from typing import Union
 
 from .exons import Exons
 from .parser import parse_suppa2
 from .parser import parse_rmats
-from .grab_stats import rewired_edges_stat
+from .grab_stats import rewired_edges_stat, rewired_edges_stat_df
 from .grab_stats import rewired_genes
 from .get_background_ppi import get_background
 from .plot_network import plot_rewired_network
@@ -32,7 +33,7 @@ from .preprocess_pooled import (
     combine_spliced_exon,
     preprocess_pooled,
 )
-from .get_consensus_network import get_consensus_network
+from .get_consensus_network import get_consensus_network, analyze_consensus_threshold
 
 import importlib_resources as pkg_resources
 from .src import reference
@@ -319,7 +320,7 @@ def run(
 
 
 def plot(
-    pickle_path: str,
+    rewired_net: Union[str, nx.Graph],
     with_labels: bool = False,
     pdf_path: str = None,
     gephi_path: str = None,
@@ -331,24 +332,42 @@ def plot(
     species: str = "human",
     self_edges: bool = False,
     lcc: bool = True,
+    threshold: float = 0.0,
 ):
     """
     Load a pickled Graph (as created by `rewire(...)`) and call plot_rewired_network().
 
     Parameters:
-    - pickle_path: path to the '.edges.pickle' file (output of `rewire(...)`).
+    - rewired_net: path to the '.edges.pickle' file (output of `rewire(...)`) or a networkx.Graph object.
     - with_labels: whether to draw node labels in the plot.
     - pdf_path: if provided, write a PDF of the plotted network to this path.
     - gephi_path: if provided, write a Gephi-compatible CSV to this path.
     - cytoscape_path: if provided, write a Cytoscape GML to this path.
     - self_edges: if you want to keep self edges from the plots
+    - lcc: if True, only display the largest connected component
+    - threshold: if > 0, only keep edges passing threshold for consensus network only
     """
 
-    if not os.path.isfile(pickle_path):
-        sys.exit(f"ERROR: pickle file '{pickle_path}' not found.")
+    if rewired_net != None:
+        if isinstance(rewired_net, str):
+            if not os.path.isfile(rewired_net):
+                sys.exit(f"ERROR: pickle file '{rewired_net}' not found.")
+            with open(rewired_net, "rb") as f:
+                G = pickle.load(f)
+        elif isinstance(rewired_net, nx.Graph):
+            G = rewired_net
+    else:
+        sys.exit("ERROR: either pickle_path or networkx must be provided.")
 
-    with open(pickle_path, "rb") as f:
-        G = pickle.load(f)
+    if threshold > 0:
+        G = G.edge_subgraph(
+            e
+            for e, d in G.edges.items()
+            if (
+                ("num_neg" in d and d["num_neg"] >= threshold * G.graph["num_graphs"])
+                or ("num_pos" in d and d["num_pos"] >= threshold * G.graph["num_graphs"])
+            )
+        ).copy()
 
     if not self_edges:
         G.remove_edges_from(nx.selfloop_edges(G))
@@ -413,8 +432,8 @@ def plot(
 
 
 def stats(
-    dat_file: str,
-    rewire_net: str,
+    rewired_net: Union[str, nx.Graph] = None,
+    dat_file: str = None,
     out_file_prefix: str = None,
     ppif: str = None,
     ddif: str = None,
@@ -426,8 +445,8 @@ def stats(
     Output gene-level statistics for a rewired splicing-induced PPI network.
 
     Parameters:
+      rewired_net: Path to the '.edges.pickle' file (output of `rewire(...)`) or a networkx.Graph object.
       dat_file: Path to the input file containing the rewired network edges (e.g., one edge per line).
-      rewire_net: Path to the file listing genes with differential splicing events.
       out_file: Path (or prefix) for the output gene stats summary.
       ppif: Protein protein interaction reference file (default: human_ppi_0.5.dat).
       ddif: Domain domain interaction reference file (default: ddi_0.5.dat).
@@ -469,7 +488,30 @@ def stats(
                 file = pkg_resources.files(reference).joinpath("hsa_mapping_all.txt")
                 map_path = str(file)
 
-    stats = rewired_edges_stat(dat_file)
+    if dat_file != None:
+        stats = rewired_edges_stat(dat_file)
+    else:
+        if rewired_net != None:
+            if isinstance(rewired_net, str):
+                if not os.path.isfile(rewired_net):
+                    sys.exit(f"ERROR: pickle file '{rewired_net}' not found.")
+                with open(rewired_net, "rb") as f:
+                    diff_splice_g = pickle.load(f)
+            elif isinstance(rewired_net, nx.Graph):
+                diff_splice_g = rewired_net
+        elif networkx != None:
+            diff_splice_g = networkx
+        else:
+            sys.exit("ERROR: either rewired_net or networkx must be provided.")
+        df_dat = pd.DataFrame(
+            [
+                (u, v, attr.get("weight", 0), attr.get("chaos", False))
+                for u, v, attr in diff_splice_g.edges(data=True)
+            ],
+            columns=["node1", "node2", "weight", "chaos"],
+        )
+        stats = rewired_edges_stat_df(df_dat)
+
     gain, loss, chaos = (int(stats[k]) for k in ("gain", "loss", "chaos"))
     print(
         f"""\
@@ -481,8 +523,18 @@ def stats(
     )
 
     background = get_background(ppif, ddif, entrezpfamf)
-    with open(rewire_net, "rb") as f:
-        diff_splice_g = pickle.load(f)
+    if rewired_net != None:
+        if isinstance(rewired_net, str):
+            if not os.path.isfile(rewired_net):
+                sys.exit(f"ERROR: pickle file '{rewired_net}' not found.")
+            with open(rewired_net, "rb") as f:
+                diff_splice_g = pickle.load(f)
+        elif isinstance(rewired_net, nx.Graph):
+            diff_splice_g = rewired_net
+    elif networkx != None:
+        diff_splice_g = networkx
+    else:
+        sys.exit("ERROR: either rewired_net or networkx must be provided.")
     gene_stats_df = rewired_genes(diff_splice_g, background, map_path)
     if out_file_prefix != None:
         gene_stats_df.to_csv(out_file_prefix + "_gene_degree.csv", index=False)
@@ -604,7 +656,10 @@ def main():
         "plot", help="load a saved rewired network (.edges.pickle) and produce plots"
     )
     plot_p.add_argument(
-        "pickle_path", help="Path to the '.edges.pickle' file (output of `rewire`)."
+        "--rewired_net",
+        type=str,
+        default=None,
+        help="Path to the '.edges.pickle' file (output of `rewire(...)`) or a networkx.Graph object.",
     )
     plot_p.add_argument(
         "--with_labels",
@@ -666,18 +721,27 @@ def main():
         default=True,
         help="Only display the largest connected component.",
     )
+    plot_p.add_argument(
+        "--threshold",
+        type=float,
+        default=0.0,
+        help="If > 0, only keep edges passing threshold for consensus network only (default: 0.0).",
+    )
 
     stats_p = subparsers.add_parser(
         "stats",
         help="compute and write gene level statistics for a rewired splicing PPI network",
     )
     stats_p.add_argument(
+        "--rewired_net",
+        type=str,
+        default=None,
+        help="Path to the '.edges.pickle' file (output of `rewire(...)`) or a networkx.Graph object.",
+    )
+    stats_p.add_argument(
         "dat_file",
         type=str,
         help="Path to the input file of rewired network edges dat file",
-    )
-    stats_p.add_argument(
-        "rewire_net", type=str, help="Path to pickle file of rewired network"
     )
     stats_p.add_argument(
         "out_file_prefix",
@@ -814,6 +878,40 @@ def main():
         "net_dir", type=str, help="Path to your directory of rewired networks"
     )
 
+    analyze_p = subparsers.add_parser(
+        "analyze_consensus_threshold",
+        help="threshold consensus neg/pos graphs, write sizes, and plot (#nodes & prop_nodes)",
+    )
+    analyze_p.add_argument(
+        "--neg_consensus",
+        type=str,
+        default=None,
+        help="Path to negative consensus graph (pickle file or networkx graph)",
+    )
+    analyze_p.add_argument(
+        "--pos_consensus",
+        type=str,
+        default=None,
+        help="Path to positive consensus graph (pickle file or networkx graph)",
+    )
+    analyze_p.add_argument(
+        "--thresholds",
+        type=float,
+        nargs="+",
+        default=[0.1, 0.25, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99, 1.0],
+    )
+    analyze_p.add_argument("--label", type=str, default="sample")
+    analyze_p.add_argument("--pickles_dir", type=str, default=None)
+    analyze_p.add_argument("--save_pickles", action="store_true", default=True)
+    analyze_p.add_argument(
+        "--no_save_pickles", action="store_false", dest="save_pickles"
+    )
+    analyze_p.add_argument("--write_txt", action="store_true", default=True)
+    analyze_p.add_argument("--no_write_txt", action="store_false", dest="write_txt")
+    analyze_p.add_argument("--txt_path", type=str, default=None)
+    analyze_p.add_argument("--save_pdf_prefix", type=str, default=None)
+    analyze_p.add_argument("--title_prefix", type=str, default=None)
+
     args = parser.parse_args()
 
     if args.command == "run":
@@ -842,7 +940,7 @@ def main():
         )
     elif args.command == "plot":
         plot(
-            pickle_path=args.pickle_path,
+            rewired_net=args.rewired_net,
             with_labels=args.with_labels,
             pdf_path=args.pdf_path,
             gephi_path=args.gephi_path,
@@ -854,11 +952,12 @@ def main():
             species=args.species,
             self_edges=args.self_edges,
             lcc=args.lcc,
+            threshold=args.threshold,
         )
     elif args.command == "stats":
         stats(
+            rewired_net=args.rewired_net,
             dat_file=args.dat_file,
-            rewire_net=args.rewire_net,
             out_file_prefix=args.out_file_prefix,
             ppif=args.ppif,
             ddif=args.ddif,
@@ -893,6 +992,20 @@ def main():
 
     elif args.command == "get_consensus_network":
         get_consensus_network(net_dir=args.net_dir)
+
+    elif args.command == "analyze_consensus_threshold":
+        analyze_consensus_threshold(
+            neg_consensus=args.neg_consensus,
+            pos_consensus=args.pos_consensus,
+            thresholds=args.thresholds,
+            label=args.label,
+            pickles_dir=args.pickles_dir,
+            save_pickles=args.save_pickles,
+            write_txt=args.write_txt,
+            txt_path=args.txt_path,
+            save_pdf_prefix=args.save_pdf_prefix,
+            title_prefix=args.title_prefix,
+        )
 
 
 if __name__ == "__main__":
