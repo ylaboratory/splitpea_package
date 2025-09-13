@@ -209,6 +209,7 @@ splitpea.plot(
 - **`--max_nodes`** — Maximum nodes allowed in matplotlib plotting; larger graphs skip matplotlib. Default: `2000`.
 - **`--max_edges`** — Maximum edges allowed in matplotlib plotting; larger graphs skip matplotlib. Default: `10000`.
 - **`--threshold`** — If set, only include edges with that pass threshold. Only change parameter when inputing a consensus network. Default: `0`.
+- **`--plot_matplot`** — If `True`, renders Matplotlib plot (default: `True` if `pdf_path` is provided and number of nodes/edges is below `max_nodes`/`max_edges`, else `False`).
 
 **Outputs (depending on args):**
 - PDF plot, Gephi TSV, and/or Cytoscape GML.

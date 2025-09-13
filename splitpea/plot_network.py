@@ -152,7 +152,7 @@ def plot_rewired_network(
     else:
         pos = layout
 
-    if plot_matplot and pdf_path:
+    if plot_matplot or pdf_path:
         plt.figure()
 
         if node_size is None:

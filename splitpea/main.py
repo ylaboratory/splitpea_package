@@ -333,6 +333,7 @@ def plot(
     self_edges: bool = False,
     lcc: bool = True,
     threshold: float = 0.0,
+    plot_matplot: bool | None = None,
 ):
     """
     Load a pickled Graph (as created by `rewire(...)`) and call plot_rewired_network().
@@ -402,8 +403,9 @@ def plot(
 
         G = nx.relabel_nodes(G, relabel_map)
 
-    plot_matplot = True
-    if pdf_path is None:
+    if plot_matplot == None and pdf_path != None:
+        plot_matplot = True
+    elif plot_matplot == None and pdf_path == None:
         plot_matplot = False
 
     result = plot_rewired_network(
@@ -727,6 +729,12 @@ def main():
         default=0.0,
         help="If > 0, only keep edges passing threshold for consensus network only (default: 0.0).",
     )
+    plot_p.add_argument(
+        "--plot_matplot",
+        type=bool,
+        default=None,
+        help="If True, use Matplotlib for plotting (default: True if pdf_path is provided and number of nodes/edges is below max_nodes/max_edges, else false).",
+    )
 
     stats_p = subparsers.add_parser(
         "stats",
@@ -953,6 +961,7 @@ def main():
             self_edges=args.self_edges,
             lcc=args.lcc,
             threshold=args.threshold,
+            plot_matplot=args.plot_matplot,
         )
     elif args.command == "stats":
         stats(
