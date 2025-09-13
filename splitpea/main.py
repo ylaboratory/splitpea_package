@@ -363,7 +363,10 @@ def plot(
         G = G.edge_subgraph(
             e
             for e, d in G.edges.items()
-            if d["num_neg"] >= threshold * G.graph["num_graphs"]
+            if (
+                ("num_neg" in d and d["num_neg"] >= threshold * G.graph["num_graphs"])
+                or ("num_pos" in d and d["num_pos"] >= threshold * G.graph["num_graphs"])
+            )
         ).copy()
 
     if not self_edges:
