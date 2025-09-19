@@ -1,6 +1,6 @@
 # Splitpea
 
-This is the Python package implementation of **Splitpea**: *SPLicing InTeractions PErsonAlized*, a method for calculating and analyzing protein-protein interaction changes due to alternative splicing. It integrates differential exon usage (PSI values) with domain-domain interactions (DDIs) and PPIs to generate condition or sample specific networks.
+This is the Python package implementation of **Splitpea**: *SPLicing InTeractions PErsonAlized*, a method for calculating and analyzing protein-protein interaction changes due to alternative splicing. It integrates differential exon usage (PSI values) with domain-domain interactions (DDIs) and protein-protein interactions (PPIs) to generate rewired PPI networks compairing two conditions.
 
 ## Requirements and Installation
 
@@ -36,6 +36,16 @@ Splitpea ships bundled reference datasets (protein-protein interaction, domain-d
 
 > `AdiposeTissue`, `AdrenalGland`, `Bladder`, `Blood`, `BloodVessel`, `Brain`, `Breast`, `CervixUteri`, `Colon`, `Esophagus`, `FallopianTube`, `Heart`, `Kidney`, `Liver`, `Lung`, `Muscle`, `Nerve`, `Ovary`, `Pancreas`, `Pituitary`, `Prostate`, `SalivaryGland`, `Skin`, `SmallIntestine`, `Spleen`, `Stomach`, `Testis`, `Thyroid`, `Uterus`, `Vagina`. 
 
+
+### Examples / tutorials
+
+We include three sample workflows to help users get started.
+
+1. [Condition-specific mode](./examples/condition_mode.ipynb): takes the output of rMATS and SUPPA2 to produce a single rewired network. 
+
+2. [Sample-specific mode - single sample](./examples/sample_mode_single.ipynb): which runs Splitpea on rMATS data for a single sample versus a background collection of healthy normal tissue samples to produce a single rewired network.
+
+3. [Sample-specific mode - multiple samples](./examples/sample_mode_multi.ipynb): which runs Splitpea on group of rMATS samples versus a background collection of healthy normal tissue samples to produce one network for each rMATS sample. 
 
 ### Quick start
 
